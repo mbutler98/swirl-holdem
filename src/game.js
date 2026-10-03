@@ -163,7 +163,7 @@ function makeDecision(p){
     toCall,pot,nOpp:opps.length,oppIds:opps.map(o=>o.id),foldy:opps.map(o=>o.human?1:o.params.foldy),
     canRaise:p.chips>toCall&&opps.some(o=>!o.allIn),myBet:p.bet,currentBet:G.currentBet,chips:p.chips,
     minTo:Math.min(G.currentBet+G.minRaise,p.bet+p.chips),maxTo:p.bet+p.chips,bb:G.bb,act:null,amount:0,
-    unopened:G.street===0&&G.currentBet<=G.bb};
+    unopened:G.street===0&&G.currentBet<=G.bb,oppAvail:Math.max(0,...opps.map(o=>o.chips+o.bet-G.currentBet))};
   return d;
 }
 function measure(d,iters){
@@ -173,12 +173,20 @@ function measure(d,iters){
   if(d.toCall>0&&!d.unopened){const ratio=d.toCall/Math.max(d.bb,d.pot-d.toCall);d.eqA=d.eq*(1-.28*Math.min(1,ratio));}
   const o=countOuts(d.hole,d.board);d.outs=o.n;d.outKinds=o.kinds;
 }
+/* Bigger bets fold out more hands, but the hands that DO call are stronger.
+   Your equity against that narrower calling range is roughly eq^(1/callRate).
+   Only the chips an opponent can actually match count (effective stack). */
 function raiseEV(d,to){
-  const P=d.pot,C=d.toCall;const A=to-d.myBet,X=to-d.currentBet;
+  const P=d.pot,C=d.toCall;
+  const X=Math.min(to-d.currentBet,Math.max(0,d.oppAvail==null?Infinity:d.oppAvail));
+  const A=(d.currentBet-d.myBet)+X;
   const ratio=X/Math.max(1,P+C);
-  let f1=clamp(.12+.35*ratio,.05,.7);if(C>0&&!d.unopened) f1*=.75;if(d.street===0) f1*=.85;if(to>=d.maxTo) f1=Math.min(.8,f1*1.1);
-  const f=d.foldy.reduce((acc,fy)=>acc*clamp(f1*fy,0,.92),1);
-  const eqC=d.eqA*.85;
+  let f1=clamp(.15+.35*ratio,.05,.85);if(C>0&&!d.unopened) f1*=.8;if(d.street===0) f1*=.85;
+  /* even loose players rarely call bets much bigger than the pot */
+  const cap=1/(1+.8*ratio);
+  const f=d.foldy.reduce((acc,fy)=>acc*(1-Math.min(1-clamp(f1*fy,0,.92),cap)),1);
+  const q=Math.max(.06,1-f);
+  const eqC=Math.pow(d.eqA,1/q);
   return f*P+(1-f)*(eqC*(P+A+X)-A);
 }
 function evOptions(d){
@@ -459,7 +467,7 @@ async function revealAllIn(){
   if(G.rule.fog){const el=$$('#heroCards .card')[1];if(el) el.classList.add('up');}
   sfx.flip();await sleep(500);await showRunoutEquity();await sleep(700);
 }
-async function showRunoutEquity(){
+async function showRunoutEquity(){return;
   const ps=inHand();const eq=equityKnown(ps.map(p=>p.hand),G.board,1500);
   ps.forEach((p,i)=>{const b=p.human?$('#heroEq'):seatEl(p).querySelector('.eqbadge');b.hidden=false;b.textContent=pct(eq[i]);b.classList.remove('numpop');void b.offsetWidth;b.classList.add('numpop');});
 }
@@ -481,13 +489,13 @@ function buildPots(){
 async function resolveHand(){
   G.players.forEach(p=>seatEl(p)?.classList.remove('turn'));$('#hero').classList.remove('turn');
   const contenders=inHand();const total=potTotal();let mainWinners=[],mainScore=null;
-  G.heroWon=0;G.heroCat=null;G.heroScore=null;G.nearMiss=null;G.allinWin=false;
+  G.heroWon=0;G.heroCat=null;G.heroScore=null;G.nearMiss=null;G.allinWin=false;G.beat=null;
   if(contenders.length===1){
     const w=contenders[0];w.chips+=total;mainWinners=[w];if(w.human) G.heroWon=total;
     setStatus(`${w.human?'You win':w.name+' wins'} ${money(total)}`);
     snap(`${w.human?'You win':w.name+' wins'} ${money(total)}. Everyone else folded.`,{kind:'end'});
     await flyChips($('#pot'),w.human?$('#heroCards'):seatEl(w).querySelector('.seat-box'),8);
-    tweenNum($('#potNum'),0);renderSeats();
+    renderSeats();$('#potNum').dataset.v=0;$('#potNum').textContent='$0';
     if(w.human){sfx.win();flashSwirl('win');const c=center($('#heroCards'));burst(c.x,c.y,30);}
     if(!w.human) await banner(`${w.name} takes it`,[[`+${money(total)}`,'var(--gold)']],'var(--text)',null,1100);
   }else{
@@ -517,13 +525,17 @@ async function resolveHand(){
       if(catOf(mainScore)>=6) G.bigHandWin=true;}
     else if(heroIn){sfx.lose();flashSwirl('lose',2200,1);const hs=scores.get(G.human);
       if(catOf(hs)===catOf(mainScore)) G.nearMiss=catOf(hs)>=1?'Lost by a kicker!':'So close!';else if(catOf(mainScore)-catOf(hs)===1) G.nearMiss='One step short!';}
-    if(heroWins){G.heroScore=scores.get(G.human);G.heroCat=catOf(G.heroScore);}
+    if(heroWins){G.heroScore=scores.get(G.human);G.heroCat=catOf(G.heroScore);G.beat=contenders.filter(p=>!mainWinners.includes(p)).map(p=>`${p.name}: ${shortName(scores.get(p)).toLowerCase()}`);}
     snap(`${who} with ${handTitle(mainScore).toLowerCase()} (${handDetail(mainScore).toLowerCase()}).`,{kind:'end'});
     if(!(heroWins&&mainWinners.length===1)) await banner(handTitle(mainScore),[[handDetail(mainScore),'var(--blue)'],[who,heroWins?'var(--gold)':'var(--red)']],heroWins?'var(--gold)':'var(--text)',null,1500);
     for(const [p,amt] of payouts){p.chips+=amt;if(p.human) G.heroWon+=amt;await flyChips($('#pot'),p.human?$('#heroCards'):seatEl(p).querySelector('.seat-box'),Math.min(10,3+Math.ceil(amt/G.bb/3)));}
-    tweenNum($('#potNum'),0);renderSeats();setStatus(`${who}: ${shortName(mainScore)}`);
+    renderSeats();$('#potNum').dataset.v=0;$('#potNum').textContent='$0';setStatus(`${who}: ${shortName(mainScore)}`);
     if(heroIn&&heroWins&&G.players.some(p=>p.allIn)){SAVE.stats.allinWins++;G.allinWin=true;}
   }
+  if(S().reveal) G.players.forEach(p=>{if(!p.human&&p.hand.length&&!p.out){flipSeatCards(p);seatEl(p).classList.add('shown');}});
+  G.players.forEach(p=>{if(p.human||p.out&&!p.hand.length) return;const dl=p.chips-p.startChips;if(dl) popAt(seatEl(p).querySelector('.seat-box'),smoney(dl),dl>0?'var(--green)':'#5c6a80');});
+  G.foldResult=G.human.folded&&!G.human.out&&G.human.hand.length?wouldHaveWon(contenders):null;
+  if(G.foldResult) setTimeout(()=>{if(!G.dead) popAt($('#heroCards'),G.foldResult.short,G.foldResult.won?'var(--red)':'var(--green)');},700);
   const net=G.human.chips-G.human.startChips;
   if(net!==0) popAt($('#heroCards'),smoney(net),net>0?'var(--gold)':'var(--red)');
   bossReact(mainWinners);
@@ -533,7 +545,7 @@ async function resolveHand(){
   buildReview(net);
   persist();
   const R=G.lastReview;
-  if(!G.human.out) await afterHand({won:G.heroWon,cat:G.heroCat,score:G.heroScore,nearMiss:G.nearMiss,allinWin:G.allinWin,mine:R.mine,handAcc:R.handAcc});
+  if(!G.human.out) await afterHand({won:G.heroWon,cat:G.heroCat,score:G.heroScore,nearMiss:G.nearMiss,allinWin:G.allinWin,mine:R.mine,handAcc:R.handAcc,beat:S().reveal?G.beat:null});
 }
 function bossReact(winners){
   if(!G.boss) return;const b=G.boss;const lost=b.startChips-b.chips;
@@ -552,8 +564,8 @@ function humanAction(p,d){
   return new Promise((resolve,reject)=>{
     const toCall=d.toCall;
     $('#hero').classList.add('turn');setStatus('Your move');sfx.tick();
-    renderHud(d);
-    const done=act=>{$('#hero').classList.remove('turn');$('#raiseTray').hidden=true;setActionsWaiting();G.pending=null;resolve(act);};
+    renderHud(d);renderCoach(d);
+    const done=act=>{$('#hero').classList.remove('turn');$('#raiseTray').hidden=true;$('#coach').hidden=true;setActionsWaiting();G.pending=null;resolve(act);};
     G.pending={reject};
     const A=$('#actions');A.className='';A.innerHTML='';
     const bF=btn('Fold','b-red',()=>done({a:'fold'}));
@@ -664,6 +676,7 @@ function renderSeats(){
     el.querySelector('.dbtn').hidden=G.players.indexOf(p)!==G.dealer;
     el.classList.toggle('folded',p.folded&&!p.out);el.classList.toggle('out',p.out);
   }
+  const pn=$('#potNum');if(+pn.dataset.v!==potTotal()) tweenNum(pn,potTotal());
   if(G.boss) updateBossBar(false);
 }
 function setStatus(t){$('#status').textContent=t;}
@@ -725,12 +738,15 @@ const cap1=t=>t.charAt(0).toUpperCase()+t.slice(1);
 function openReview(){
   const R=G.lastReview;if(!R||!R.mine.length) return;
   const acc=R.handAcc;
-  const rows=R.mine.slice(-6).map(d=>{const c=CLS[d.cls];const good=d.cls==='master'||d.cls==='best';
-    return `<div class="rv-row" style="--cc:${c.c}"><div class="what">${STREETS[d.street]} <span>· ${cap1(actText(d))}</span></div><div class="g">${clsIcon(d.cls,20)}${c.n}</div>
-      <div class="sub">Win <b>${pct(d.eqA)}</b> · ${d.toCall?`needed <b>${pct(d.req)}</b>`:'free to check'}${d.outs?` · ${d.outs} outs`:''}</div>
-      ${good?'':`<div class="best">Best: ${d.best.label}${d.loss>=1?` (about ${money(d.loss)} better)`:''}</div>`}</div>`;}).join('');
+  const shown=R.mine.slice(-5);
+  const shortBest=b=>b.k==='raise'?`${b.label.split(' (')[0].toLowerCase()}`:b.k;
+  const rows=shown.map(d=>{const c=CLS[d.cls];const good=d.cls==='master'||d.cls==='best';
+    return `<div class="rv-row" style="--cc:${c.c}"><div class="what">${STREETS[d.street]} <span>· ${cap1(actText(d))}</span></div><div class="g">${clsIcon(d.cls,18)}${c.n}</div>
+      <div class="sub">Win <b>${pct(d.eqA)}</b> · ${d.toCall?`need <b>${pct(d.req)}</b>`:'free'}${good?'':` · <span class="bst">Best: ${shortBest(d.best)}${d.loss>=1?` (+${money(d.loss)})`:''}</span>`}</div></div>`;}).join('')+
+    (R.mine.length>shown.length?`<div class="note" style="text-align:center">+${R.mine.length-shown.length} earlier decision${R.mine.length-shown.length>1?'s':''} counted in your accuracy</div>`:'');
   openModal(`<div class="rv"><div class="rv-top"><div><div class="bigacc" style="color:${accColor(acc)}">${acc.toFixed(1)}</div><div class="k">Accuracy</div></div>
     <div><div class="net" style="color:${R.net>0?'var(--gold)':R.net<0?'var(--red)':'var(--text)'}">${smoney(R.net)}</div><div class="k" style="text-align:right">This hand</div></div></div>
+    ${G.foldResult?`<div class="rv-fold" style="--cc:${G.foldResult.won?'var(--red)':'var(--green)'}">${G.foldResult.text}</div>`:''}
     <div class="rv-list">${rows}</div>
     <div class="btnrow"><button class="btn b-grey" id="rvClose">Close</button><button class="btn b-gold" id="rvNext">Next hand</button></div></div>`);
   $('#rvClose').onclick=()=>{sfx.btn();closeModal();};
@@ -808,22 +824,25 @@ function statGrid(){
 const SETTINGS=[
   ['music','Music','Chiptune soundtrack'],['sound','Sound effects','Cards, chips and wins'],
   ['coach','Auto hand review','Shows your grades after each hand'],['handName','Show my hand\'s name','Turn off to practise reading hands'],
-  ['hud','Live odds meter','Your odds and break-even on your turn'],['fast','Fast dealing','Shorter animations']
+  ['hud','Live odds meter','Your odds and break-even on your turn'],['jcoach','Joker coach','Plain-words advice on your turn (quick play)'],
+  ['reveal','Show everyone\'s cards','Reveal all hands and what you beat after each round'],['fast','Fast dealing','Shorter animations']
 ];
-function settingsHtml(keys,compact){return SETTINGS.filter(s=>!keys||keys.includes(s[0])).map(([k,l,s])=>`<button class="tog" data-k="${k}" role="switch" aria-checked="${!!S()[k]}"><span>${l}${compact?'':`<small>${s}</small>`}</span><span class="sw"></span></button>`).join('');}
+const SHORT={coach:'Auto review',jcoach:'Joker coach',handName:'Hand name',hud:'Odds meter'};
+function settingsHtml(keys,compact,short){return SETTINGS.filter(s=>!keys||keys.includes(s[0])).map(([k,l,s])=>`<button class="tog" data-k="${k}" role="switch" aria-checked="${!!S()[k]}"><span>${short?SHORT[k]||l:l}${compact?'':`<small>${s}</small>`}</span><span class="sw"></span></button>`).join('');}
 function wireSettings(root){
   root.querySelectorAll('.tog[data-k]').forEach(b=>b.onclick=()=>{
     const k=b.dataset.k;S()[k]=!S()[k];b.setAttribute('aria-checked',S()[k]);persist();audio();sfx.btn();
     if(k==='music'){if(S().music) Music.start();else Music.stop();}
-    if(G&&!G.dead){if(k==='handName') updateHeroLabel();if(k==='hud'&&!S().hud) $('#hud').hidden=true;}
+    if(G&&!G.dead){if(k==='handName') updateHeroLabel();if(k==='hud'&&!S().hud) $('#hud').hidden=true;if(k==='jcoach'&&!S().jcoach) $('#coach').hidden=true;}
   });
 }
 function openMenu(){
-  const keys=['music','sound','coach','handName',...(G.cfg.mode==='quick'?['hud']:[]),'fast'];
-  openModal(`<h2>Options</h2>${settingsHtml(keys)}<button class="btn b-green" id="mCheat">Cheat sheets</button>
+  const keys=['music','sound','coach','handName',...(G.cfg.mode==='quick'?['hud','jcoach']:[]),'reveal','fast'];
+  openModal(`<h2>Options</h2>${settingsHtml(keys,true)}<div class="btnrow"><button class="btn b-green" id="mCheat">Cheat sheets</button><button class="btn b-violet hasbadge" id="mCol">Collection${packBadge()}</button></div>
     <div class="btnrow"><button class="btn b-red" id="mQuit">Leave table</button><button class="btn b-gold" id="mResume">Resume</button></div>`);
   wireSettings($('#modal'));
   $('#mCheat').onclick=()=>{closeModal();openCheats();};
+  $('#mCol').onclick=()=>{closeModal();openCollection(0,'game');};
   $('#mResume').onclick=()=>{sfx.btn();closeModal();};
   $('#mQuit').onclick=()=>{sfx.btn();leaveTable();};
 }
@@ -886,6 +905,9 @@ function renderHome(mode){
   if(mode) HOME.mode=mode;
   show('home');
   $$('.logo [data-word]').forEach(w=>{if(!w.children.length) w.innerHTML=[...w.dataset.word].map((ch,i)=>`<span style="--i:${i}">${ch}</span>`).join('');});
+  const LC=$('#logoCards');LC.innerHTML='';
+  [[48,-14],[37,-6],[26,0],[15,6],[4,14]].forEach(([c,r],i)=>{const el=makeCard(c,'up');el.style.setProperty('--w','40px');bobify(el);el.style.setProperty('--r0',(r-2)+'deg');el.style.setProperty('--r1',(r+2)+'deg');el.style.marginTop=(Math.abs(i-2)*6)+'px';LC.appendChild(el);});
+  $('#collectionBtn').innerHTML='Collection'+packBadge();
   const camp=HOME.mode==='camp';
   $('#modeQuick').setAttribute('aria-selected',!camp);$('#modeCamp').setAttribute('aria-selected',camp);
   $('#quickPanel').hidden=camp;$('#campPanel').hidden=!camp;
@@ -897,7 +919,7 @@ function renderQuickPanel(){
   for(let i=1;i<=5;i++){const b=document.createElement('button');b.textContent=i;b.setAttribute('aria-pressed',S().opp===i);b.onclick=()=>{audio();sfx.btn();S().opp=i;persist();renderQuickPanel();};so.appendChild(b);}
   const sd=$('#segDiff');sd.innerHTML='';
   DIFFS.forEach(d=>{const b=document.createElement('button');b.innerHTML=`${d.name}<small>${d.sub}</small>`;b.setAttribute('aria-pressed',S().diff===d.id);b.onclick=()=>{audio();sfx.btn();S().diff=d.id;persist();renderQuickPanel();};sd.appendChild(b);});
-  const T=$('#quickToggles');T.innerHTML=settingsHtml(['coach','handName','hud'],true);wireSettings(T);
+  const T=$('#quickToggles');T.innerHTML=settingsHtml(['coach','jcoach','handName','hud'],true,true);wireSettings(T);
   $('#primaryBtn').textContent='Deal me in';$('#primaryBtn').disabled=false;
 }
 function renderCampPanel(){
@@ -920,7 +942,7 @@ function renderCampPanel(){
   });
   const sel=HOME.sel;
   $('#blindInfo').innerHTML=sel==null?'Clear the earlier antes to unlock this one.':sel===2?`<b>${B.name}:</b> ${B.rule}`:tipFor(A[sel?'big':'small']);
-  const T=$('#campToggles');T.innerHTML=settingsHtml(['coach','handName'],true);wireSettings(T);
+  const T=$('#campToggles');T.innerHTML=settingsHtml(['coach','handName'],true,true);wireSettings(T);
   const pb=$('#primaryBtn');pb.disabled=sel==null;
   pb.textContent=sel!=null&&isBeaten(a,sel)?'Replay match':SAVE.campaign.beaten.length?'Continue campaign':'Start campaign';
 }
@@ -932,8 +954,13 @@ function tipFor(styles){
 
 /* ---------- collection: packs, card styles, tables ---------- */
 const COL={page:0,sel:null};
-function colPages(){const n=Math.ceil(CARD_STYLES.length/8);const pages=[{k:'packs',t:'Booster packs'}];for(let i=0;i<n;i++) pages.push({k:'cards',i,t:`Card styles ${i+1}/${n}`});pages.push({k:'tables',t:'Tables'});return pages;}
-function openCollection(page=0){show('collection');baseSwirl('shop',1);COL.page=page;COL.sel=null;renderCollection();}
+const RAR_ORDER=['common','rare','epic','legendary','mythic'];
+function colPages(){const pages=[{k:'packs',t:'Booster packs'}];
+  RAR_ORDER.forEach(r=>{if(CARD_STYLES.some(s=>s.rar===r)) pages.push({k:'cards',rar:r,t:`Cards: ${RARITY[r][0]}`});});
+  pages.push({k:'tables',t:'Tables'});return pages;}
+function packBadge(){const n=P().packs;return n?`<span class="badge">${n}</span>`:'';}
+function openCollection(page=0,from='home'){COL.from=from;show('collection');baseSwirl('shop',1);COL.page=page;COL.sel=null;renderCollection();}
+function closeCollection(){if(COL.from==='game'&&G&&!G.dead){show('game');Music.setTheme(G.boss?'boss':'table');baseSwirl(G.boss?'boss':themePalette());requestAnimationFrame(sizeCards);}else renderHome();}
 function renderCollection(){
   const pages=colPages();COL.page=clamp(COL.page,0,pages.length-1);const pg=pages[COL.page];
   $('#colTitle').textContent=pg.t;$('#colDots').textContent=pages.map((_,i)=>i===COL.page?'●':'○').join(' ');
@@ -948,7 +975,7 @@ function renderCollection(){
     CP.innerHTML=`<span>Level ${p.level}</span><small>${p.xp} / ${xpNeed(p.level)} XP to the next pack</small>`;
   }
   if(pg.k==='cards'){
-    CARD_STYLES.slice(pg.i*8,pg.i*8+8).forEach(st=>{
+    CARD_STYLES.filter(s=>s.rar===pg.rar).forEach(st=>{
       const un=SAVE.unlocked.includes(st.id);
       const b=document.createElement('button');b.className='citem'+(un?'':' locked')+(S().cardStyle===st.id?' eq':'')+(COL.sel===st.id?' sel':'');
       const c=makeCard(48,'up',st.id);c.dataset.fixed=1;b.appendChild(c);
@@ -960,10 +987,10 @@ function renderCollection(){
     CP.innerHTML=`<span><b>${sel.name}</b> <span class="rar" style="--rc:${rc}">${rn}</span></span><small>${un?(S().cardStyle===sel.id?'Equipped':'Tap to equip'):sel.req}</small>`;
   }
   if(pg.k==='tables'){
-    THEMES.forEach(t=>{
+    THEMES.slice().sort((a,b)=>RAR_ORDER.indexOf(a.rar)-RAR_ORDER.indexOf(b.rar)).forEach(t=>{
       const own=P().themes.includes(t.id);const pal=PALETTES[t.id];
       const b=document.createElement('button');b.className='citem'+(own?'':' locked')+(themePalette()===t.id?' eq':'')+(COL.sel===t.id?' sel':'');
-      b.innerHTML=`<span class="swatch sm" style="background:radial-gradient(circle at 35% 35%,${rgb(pal[2])},${rgb(pal[0])} 45%,${rgb(pal[1])})"></span><span class="cn">${t.name}</span>${own?'':`<span class="lk">${ICON_SVG.lock}</span>`}`;
+      b.innerHTML=`<span class="swatch sm" style="background:radial-gradient(circle at 35% 35%,${rgb(pal[2])},${rgb(pal[0])} 45%,${rgb(pal[1])})"></span><span class="cn" style="color:${RARITY[t.rar][1]}">${t.name}</span>${own?'':`<span class="lk">${ICON_SVG.lock}</span>`}`;
       b.onclick=()=>{audio();sfx.btn();COL.sel=t.id;setSwirl(t.id,2);if(own){P().theme=t.id;persist();BASE_SWIRL=t.id;}else setTimeout(()=>setSwirl(BASE_SWIRL),1600);renderCollection();};
       PG.appendChild(b);
     });
@@ -1057,10 +1084,69 @@ $('#primaryBtn').onclick=()=>{audio();sfx.raise();if(HOME.mode==='camp'){if(HOME
 $('#collectionBtn').onclick=()=>{audio();sfx.btn();openCollection();};
 $('#colPrev').onclick=()=>{sfx.btn();COL.page--;COL.sel=null;renderCollection();};
 $('#colNext').onclick=()=>{sfx.btn();COL.page++;COL.sel=null;renderCollection();};
-$('#colBack').onclick=()=>{sfx.btn();renderHome();};
+$('#colBack').onclick=()=>{sfx.btn();closeCollection();};
 $('#menuBtn').onclick=()=>{audio();sfx.btn();openMenu();};
 $('#cheatBtn').onclick=()=>{audio();sfx.btn();openCheats();};
 document.addEventListener('pointerdown',()=>audio(),{once:true});
 if('serviceWorker' in navigator&&location.protocol==='https:'&&!/claude\.ai|claudeusercontent/.test(location.hostname)){
   navigator.serviceWorker.register('sw.js').catch(()=>{});
+}
+
+/* ---------- what would have happened if you hadn't folded (uses the real next cards) ---------- */
+function wouldHaveWon(contenders){
+  const deck=G.deck.slice();const board=G.board.slice();
+  if(board.length===0){deck.pop();board.push(deck.pop(),deck.pop(),deck.pop());}
+  while(board.length<5){deck.pop();board.push(deck.pop());}
+  const mine=evalHand(G.human.hand.concat(board));
+  const rivals=(contenders.length?contenders:G.players.filter(p=>!p.human&&!p.out&&p.hand.length)).filter(p=>!p.human);
+  let best=null,bestV=-1;rivals.forEach(p=>{const v=evalHand(p.hand.concat(board));if(v>bestV){bestV=v;best=p;}});
+  if(!best) return null;
+  const mineName=shortName(mine).toLowerCase(),theirs=shortName(bestV).toLowerCase();
+  if(mine>bestV) return {won:true,short:'Fold cost you the pot',text:`If you'd stayed in, you would have <b>won</b> with ${mineName} against ${best.name}'s ${theirs}. Folding can still be right if the price was too high.`};
+  if(mine===bestV) return {won:true,short:'You’d have split it',text:`If you'd stayed in, you would have split the pot with ${best.name} (${theirs}).`};
+  return {won:false,short:'Good fold!',text:`Good fold: you would have <b>lost</b> to ${best.name}'s ${theirs} with your ${mineName}.`};
+}
+
+/* ---------- Joker coach ---------- */
+const JOKER=[
+ "Y.........Y","GG.......PP",".GGG...PPP.","..GGGGPPP..",".YYYYYYYYY.",".SSSSSSSSS.",
+ "SWKWSSSWKWS",".SSSSRSSSS.",".SKSSSSSKS.","..SKKKKKS..","...SSSSS...","..WWRWRWW.."
+];
+const JCOL={Y:'#f8b229',G:'#2fae70',P:'#9a6cf0',S:'#f3d2b0',W:'#ffffff',K:'#17131f',R:'#ef4f45'};
+const JOKER_SVG=(()=>{let r='';JOKER.forEach((row,y)=>[...row].forEach((ch,x)=>{if(JCOL[ch]) r+=`<rect x="${x}" y="${y}" width="1.04" height="1.04" fill="${JCOL[ch]}"/>`;}));return `<svg viewBox="0 0 11 12" shape-rendering="crispEdges" aria-hidden="true">${r}</svg>`;})();
+function strengthWord(d){
+  if(d.board.length===0){const h=d.hole;if(h.length<2) return 'a mystery hand (one card is hidden)';
+    const t=chenTier(chen(Math.max(rankOf(h[0]),rankOf(h[1])),Math.min(rankOf(h[0]),rankOf(h[1])),suitOf(h[0])===suitOf(h[1])&&rankOf(h[0])!==rankOf(h[1])));
+    return ['a premium','a strong','a playable','a speculative','a weak'][t]+' starting hand';}
+  const rel=d.eqA*(d.nOpp+1);
+  if(rel>=1.8) return 'a very strong hand here';
+  if(rel>=1.25) return 'a good hand here';
+  if(d.outs>=8) return 'a drawing hand';
+  if(rel>=.85) return 'a middling hand here';
+  return 'a weak hand here';
+}
+function coachText(d){
+  const out=[];const showName=S().handName&&!G.rule.noLabel&&!d.fogged;
+  const name=d.board.length?shortName(evalHand(d.hole.concat(d.board))).toLowerCase():(d.hole.length===2?preflopName(d.hole):'');
+  out.push(showName&&d.hole.length===2?`You have ${name}. That's ${strengthWord(d)}.`:`You hold ${strengthWord(d)}.`);
+  if(d.outs) out.push(`You have <b>${d.outs} outs</b> (${d.outKinds.slice(0,2).join(', ')}), about ${pct(hitChance(d.outs,d.board.length))} to improve by the river.`);
+  out.push(`It wins about <b>${pct(d.eqA)}</b> against ${d.nOpp>1?`${d.nOpp} random hands`:'a random hand'}${d.eqA<d.eq-.025?' (less than usual, because a bet this big usually means strength)':''}.`);
+  if(d.toCall>0) out.push(`Calling costs ${money(d.toCall)} to win ${money(d.pot)}, so you need to win <b>${pct(d.req)}</b> of the time.`);
+  const opts=evOptions(d);const best=opts.reduce((a,b)=>b.ev>a.ev?b:a,opts[0]);
+  let adv;
+  if(best.k==='fold') adv=`My advice: <b>fold</b>. It isn't worth the price.`;
+  else if(best.k==='check') adv=`My advice: <b>check</b> and see what comes for free.`;
+  else if(best.k==='call') adv=`My advice: <b>call</b>. The price is right.`;
+  else{const bet=best.to;const frac=(bet-d.currentBet)/Math.max(1,d.pot+d.toCall);
+    const sz=best.to>=d.maxTo?'all in':frac<.6?'about half the pot':frac<.85?'about two-thirds of the pot':'about the size of the pot';
+    adv=`My advice: <b>${d.currentBet?'raise':'bet'} ${sz}</b> (${money(bet)}). ${d.eqA*(d.nOpp+1)>=1.25?'Make worse hands pay.':'Pressure can make them fold.'}`;}
+  out.push(adv);
+  return out;
+}
+function renderCoach(d){
+  const C=$('#coach');
+  if(!S().jcoach||G.cfg.mode!=='quick'||G.rule.noHud){C.hidden=true;return;}
+  $('#hud').hidden=true;
+  C.hidden=false;C.innerHTML=`<div class="jk">${JOKER_SVG}</div><div class="jt">${coachText(d).map(t=>`<span>${t}</span>`).join(' ')}</div>`;
+  C.classList.remove('in');void C.offsetWidth;C.classList.add('in');
 }

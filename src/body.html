@@ -4,6 +4,7 @@
 <div id="app">
   <!-- HOME = SETUP -->
   <section id="home" class="screen">
+    <div class="logo-cards" id="logoCards" aria-hidden="true"></div>
     <h1 class="logo" aria-label="Swirl Hold'em"><span class="l1" data-word="Swirl"></span> <span class="l2" data-word="Hold'em"></span></h1>
     <div class="modeswitch" role="tablist" aria-label="Game mode">
       <button role="tab" id="modeQuick" aria-selected="true">Quick play</button>
@@ -29,7 +30,7 @@
 
     <div class="homeactions">
       <button class="btn b-gold big" id="primaryBtn">Deal me in</button>
-      <button class="btn b-violet" id="collectionBtn">Collection</button>
+      <button class="btn b-violet hasbadge" id="collectionBtn">Collection</button>
     </div>
   </section>
 
@@ -72,10 +73,10 @@
         <span class="chip dchip" id="heroD" hidden>D</span>
         <span class="chip">You <span id="heroChips" data-v="1000">$1000</span></span>
         <span class="chip" id="heroLabel" hidden></span>
-        <span class="chip eqchip" id="heroEq" hidden></span>
       </div>
     </div>
     <div id="hud" class="panel" hidden></div>
+    <div id="coach" class="panel" hidden></div>
     <div id="raiseTray" class="panel" hidden>
       <div class="presets" id="presets"></div>
       <input type="range" id="raiseRange" min="0" max="100" step="5" aria-label="Raise amount">

@@ -63,7 +63,7 @@ async function afterHand(info){
     if(G.streak>=2) bon.push([`${G.streak} win streak`,'×',+(1+.25*(G.streak-1)).toFixed(2)]);
     if(p.charm>0){bon.push(['Lucky charm','×',2]);p.charm--;}
     if(info.won>=G.bb*25) bon.push(['Big pot','×',1.5]);
-    const score=await scoreModal(info.won,bon,info.cat==null?'Everyone folded':handTitle(info.score),info.cat==null?'':handDetail(info.score));
+    const score=await scoreModal(info.won,bon,info.cat==null?'Everyone folded':handTitle(info.score),info.cat==null?'':handDetail(info.score),info.beat);
     xp+=Math.min(150,Math.round(score/40));p.totalScore=(p.totalScore||0)+score;
   }else if(info.nearMiss){
     popAt($('#heroCards'),info.nearMiss,'var(--violet)');xp+=20;
@@ -93,7 +93,7 @@ function gainXP(xp){
     toast(`Level ${p.level}: booster pack earned`);}
   renderLevelChips();
 }
-function packDropFx(n){sfx.unlock();toast(n>1?`${n} booster packs earned. Open them in Collection`:'Booster pack earned. Open it in Collection');}
+function packDropFx(n){sfx.unlock();toast(n>1?`${n} booster packs earned. Open them in Collection`:'Booster pack earned. Open it in Collection');const b=$('#collectionBtn');if(b) b.innerHTML='Collection'+packBadge();}
 
 /* ---------- chips × mult score burst (Balatro-style) ---------- */
 function scoreBurst(chips,bon){
@@ -143,7 +143,7 @@ function openPack(){
   openModal(`<h2>Booster pack</h2><div class="packwrap"><div class="pack" id="pack"><span class="px">Swirl</span><b class="px">PACK</b><span>Tap to open</span></div></div><p style="text-align:center;color:var(--muted)">${p.packs} pack${p.packs>1?'s':''} waiting</p>`);
   const pk=$('#pack');let opened=false;
   pk.onclick=()=>{
-    if(opened) return;opened=true;pk.classList.add('rip');sfx.allin();
+    if(opened) return;opened=true;pk.classList.add('rip');sfx.pack();
     setTimeout(()=>{
       p.packs--;const item=rollPack();const [rn,rc]=RARITY[item.rar];
       if(item.kind==='style') unlock(item.id);
@@ -163,6 +163,7 @@ function openPack(){
       else R.innerHTML=`<div class="xpbig num">+${item.amt}</div>`;
       const use=$('#pkUse');if(use) use.onclick=()=>{if(item.kind==='style') applyCardStyle(item.id);else{p.theme=item.id;persist();if(G&&!G.dead&&!G.boss) baseSwirl(item.id);}use.textContent='Done';sfx.btn();};
       $('#pkNext').onclick=()=>{sfx.btn();if(p.packs) openPack();else closeModal();if(!$('#collection').hidden) renderCollection();};
+      setTimeout(()=>sfx.sparkle(),150);
     },650);
   };
 }
@@ -192,10 +193,10 @@ function renderThemes(){
 addEventListener('unhandledrejection',e=>{if(e.reason==='abort') e.preventDefault();});
 
 /* ---------- chips × mult as a clear modal ---------- */
-function scoreModal(chips,bon,title,sub){
+function scoreModal(chips,bon,title,sub,beat){
   return new Promise(res=>{
     const g=G;const M=document.createElement('div');M.id='scoreModal';
-    M.innerHTML=`<div class="panel scorecard"><div class="sc-title">${title}</div>${sub?`<div class="sc-hand">${sub}</div>`:''}
+    M.innerHTML=`<div class="panel scorecard"><div class="sc-title">${title}</div>${sub?`<div class="sc-hand">${sub}</div>`:''}${beat&&beat.length?`<div class="sc-beat">Beat ${beat.join(' · ')}</div>`:''}
       <div class="sc-lines"></div>
       <div class="sc-eq"><span class="sc-box c">${chips.toLocaleString('en-US')}</span><span>×</span><span class="sc-box m" id="scM">1</span></div>
       <div class="sc-total"></div><div class="sc-tap">Tap to continue</div></div>`;

@@ -137,7 +137,7 @@ function freq(x){
    ===================================================================== */
 const STORE_KEY='swirlholdem_v2';
 const DEFAULTS={
-  settings:{opp:3,diff:'mixed',coach:true,hud:false,handName:true,thoughts:false,music:true,sound:true,fast:false,autoNext:true,cardStyle:'classic'},
+  settings:{opp:3,diff:'mixed',coach:true,hud:false,handName:true,thoughts:false,music:true,sound:true,fast:false,autoNext:true,jcoach:true,reveal:true,cardStyle:'classic'},
   prog:{xp:0,level:1,theme:'felt',themes:['felt'],charm:0,pity:0,quests:[],packs:0,totalScore:0},
   stats:{hands:0,won:0,net:0,vpip:0,accSum:0,accN:0,cls:{master:0,best:0,excellent:0,good:0,inacc:0,mistake:0,blunder:0},bigHands:0,allinWins:0,streak:0,bestStreak:0},
   campaign:{beaten:[]},
@@ -193,6 +193,8 @@ const sfx={
   blinds(){[300,450,600].forEach((f,i)=>tone(f,.1,'square',.05,i*.09));},
   hit(){tone(160,.18,'sawtooth',.08,0,-90);tone(90,.25,'square',.05,.03);},
   unlock(){[659,784,988,1318,1568,1976].forEach((f,i)=>tone(f,.12,'triangle',.06,i*.06));},
+  pack(){[523,659,784,1046].forEach((f,i)=>{tone(f,.14,'triangle',.07,i*.09);tone(f*2,.08,'square',.02,i*.09+.04);});tone(1568,.3,'triangle',.05,.4);},
+  sparkle(){[1318,1568,2093,1760,2349,2637].forEach((f,i)=>tone(f,.09,'triangle',.045,i*.07));},
   boss(){[110,104,98,92].forEach((f,i)=>tone(f,.3,'sawtooth',.07,i*.18));tone(55,1.2,'square',.05,.1);}
 };
 const mtof=m=>440*Math.pow(2,(m-69)/12);
