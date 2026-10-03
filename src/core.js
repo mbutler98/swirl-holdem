@@ -424,7 +424,9 @@ function banner(big,subs=[],color='var(--gold)',y=null,hold=1500){
   const g=(typeof G!=='undefined')?G:null;
   return new Promise((res,rej)=>setTimeout(()=>{b.classList.add('out');setTimeout(()=>{b.remove();(g&&g.dead)?rej('abort'):res();},340);},hold));
 }
-function toast(text){const t=document.createElement('div');t.className='toast';t.textContent=text;document.body.appendChild(t);setTimeout(()=>t.remove(),3200);}
+const TQ=[];let tBusy=false;
+function toast(text){if(TQ.includes(text)) return;TQ.push(text);if(!tBusy) nextToast();}
+function nextToast(){const t=TQ.shift();if(!t){tBusy=false;return;}tBusy=true;const el=document.createElement('div');el.className='toast';el.textContent=t;document.body.appendChild(el);setTimeout(()=>{el.remove();nextToast();},2100);}
 function tweenNum(el,to,prefix='$'){
   const from=+el.dataset.v||0;el.dataset.v=to;
   if(from===to){el.textContent=prefix+to.toLocaleString('en-US');return;}

@@ -6,13 +6,53 @@ from PIL import Image, ImageDraw
 ROOT = pathlib.Path(__file__).parent
 SRC, DIST = ROOT / "src", ROOT / "dist"
 DIST.mkdir(exist_ok=True)
-VERSION = "2.1.0"
+VERSION = "3.0.0"
 
-css = (SRC / "styles.css").read_text() + "\n#home{overflow-y:auto}\n" + (SRC / "cards.css").read_text()
 js = "\n".join((SRC / f).read_text() for f in ("core.js", "game.js", "progress.js")) + "\nrenderHome();\n"
 body = (SRC / "body.html").read_text()
 fonts = ('<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>'
-         '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@500;700&family=Rubik:wght@400;500;600;700;800&display=swap">')
+         '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;500;600;700&display=swap">')
+
+# ---- PixNum: a tiny pixel font for digits only, drawn so 2 and 5 never blur ----
+import base64, io
+from fontTools.fontBuilder import FontBuilder
+from fontTools.pens.ttGlyphPen import TTGlyphPen
+DIG = {
+ '0':[".XXX.","X...X","X..XX","X.X.X","XX..X","X...X",".XXX."],
+ '1':["..X..",".XX..","..X..","..X..","..X..","..X..",".XXX."],
+ '2':[".XXX.","X...X","....X","...X.","..X..",".X...","XXXXX"],
+ '3':["XXXX.","....X","....X",".XXX.","....X","....X","XXXX."],
+ '4':["...X.","..XX.",".X.X.","X..X.","XXXXX","...X.","...X."],
+ '5':["XXXXX","X....","XXXX.","....X","....X","X...X",".XXX."],
+ '6':["..XX.",".X...","X....","XXXX.","X...X","X...X",".XXX."],
+ '7':["XXXXX","....X","...X.","..X..",".X...",".X...",".X..."],
+ '8':[".XXX.","X...X","X...X",".XXX.","X...X","X...X",".XXX."],
+ '9':[".XXX.","X...X","X...X",".XXXX","....X","...X.",".XX.."],
+}
+U = 100  # one pixel in font units; digits are 7 px = 700 units tall
+names = ['.notdef'] + ['d' + k for k in DIG]
+fb = FontBuilder(1000, isTTF=True)
+fb.setupGlyphOrder(names)
+fb.setupCharacterMap({ord(k): 'd' + k for k in DIG})
+glyphs, metrics = {}, {}
+pen = TTGlyphPen(None); glyphs['.notdef'] = pen.glyph(); metrics['.notdef'] = (600, 0)
+for k, rows in DIG.items():
+    pen = TTGlyphPen(None)
+    for r, row in enumerate(rows):
+        for c, ch in enumerate(row):
+            if ch == 'X':
+                x0, y0 = 50 + c * U, (6 - r) * U
+                pen.moveTo((x0, y0)); pen.lineTo((x0, y0 + U)); pen.lineTo((x0 + U, y0 + U)); pen.lineTo((x0 + U, y0)); pen.closePath()
+    glyphs['d' + k] = pen.glyph(); metrics['d' + k] = (620, 50)
+fb.setupGlyf(glyphs); fb.setupHorizontalMetrics(metrics)
+fb.setupHorizontalHeader(ascent=900, descent=-200)
+fb.setupNameTable({'familyName': 'PixNum', 'styleName': 'Regular'})
+fb.setupOS2(sTypoAscender=900, sTypoDescender=-200, usWinAscent=900, usWinDescent=200, sCapHeight=700, sxHeight=500)
+fb.setupPost()
+buf = io.BytesIO(); fb.save(buf)
+PIXNUM = ("@font-face{font-family:'PixNum';src:url(data:font/ttf;base64," + base64.b64encode(buf.getvalue()).decode() +
+          ") format('truetype');unicode-range:U+0030-0039;font-display:block}\n")
+css = PIXNUM + (SRC / "styles.css").read_text() + "\n#home{overflow-y:auto}\n" + (SRC / "cards.css").read_text()
 
 page = f"<title>Swirl Hold'em</title>\n{fonts}\n<style>\n{css}\n</style>\n{body}\n<script>\n{js}\n</script>\n"
 (DIST / "artifact.html").write_text(page)

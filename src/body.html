@@ -2,73 +2,58 @@
 <div id="crt" aria-hidden="true"></div>
 
 <div id="app">
-  <!-- HOME -->
+  <!-- HOME = SETUP -->
   <section id="home" class="screen">
-    <div>
-      <div class="logo-cards" id="logoCards"></div>
-      <h1 class="logo" aria-label="Swirl Hold'em"><span class="l1" data-word="Swirl"></span><span class="l2" data-word="Hold'em"></span></h1>
+    <h1 class="logo" aria-label="Swirl Hold'em"><span class="l1" data-word="Swirl"></span> <span class="l2" data-word="Hold'em"></span></h1>
+    <div class="modeswitch" role="tablist" aria-label="Game mode">
+      <button role="tab" id="modeQuick" aria-selected="true">Quick play</button>
+      <button role="tab" id="modeCamp" aria-selected="false">Campaign</button>
     </div>
-    <div class="homebtns">
-      <div class="panel" id="progressCard"></div>
-      <button class="btn b-red" id="homeCampaign">Campaign</button>
-      <div class="row">
-        <button class="btn b-blue" id="homeInstant">Instant play<small>Your last table setup</small></button>
-        <button class="btn b-blue" id="homeQuick">Quick play<small>Choose the table</small></button>
-      </div>
-      <div class="row">
-        <button class="btn b-violet" id="homeCollection">Card styles</button>
-        <button class="btn b-green" id="homeCheats">Cheat sheets</button>
-      </div>
-      <div class="row">
-        <button class="btn b-grey" id="homeGrading">How grading works</button>
-        <button class="btn b-grey" id="homeSettings">Settings</button>
-      </div>
-    </div>
-    <div class="lifetime" id="lifetime"></div>
-  </section>
 
-  <!-- QUICK PLAY -->
-  <section id="quick" class="screen" hidden>
-    <div class="screenhead"><button class="iconbtn" data-back>Back</button><h2 class="title">Quick play</h2></div>
-    <div class="scroll" style="flex:1;min-height:0;padding-bottom:16px">
-      <div class="panel setup-panel">
-        <div class="field"><h3>Opponents</h3><div class="seg n5" id="segOpp" role="group" aria-label="Number of opponents"></div></div>
-        <div class="field"><h3>Table</h3><div class="seg n2" id="segDiff" role="group" aria-label="Opponent skill"></div></div>
-        <div class="field" id="quickToggles" style="display:flex;flex-direction:column;gap:8px"></div>
-        <button class="btn b-gold" id="quickPlay" style="font-size:24px;padding:15px">Deal me in</button>
-      </div>
+    <div class="panel setup-panel" id="quickPanel">
+      <div class="field"><h3>Opponents</h3><div class="seg n5" id="segOpp" role="group" aria-label="Number of opponents"></div></div>
+      <div class="field"><h3>Table</h3><div class="seg n2" id="segDiff" role="group" aria-label="Opponent skill"></div></div>
+      <div class="toglist" id="quickToggles"></div>
     </div>
-  </section>
 
-  <!-- CAMPAIGN -->
-  <section id="campaign" class="screen" hidden>
-    <div class="screenhead"><button class="iconbtn" data-back>Back</button><h2 class="title">Campaign</h2></div>
-    <div id="anteList" class="scroll"></div>
+    <div class="panel setup-panel" id="campPanel" hidden>
+      <div class="antenav">
+        <button class="arrow" id="antePrev" aria-label="Previous ante">&lt;</button>
+        <div class="antetitle"><b id="anteName"></b><span id="anteSub"></span></div>
+        <button class="arrow" id="anteNext" aria-label="Next ante">&gt;</button>
+      </div>
+      <div class="blindcards" id="blindCards"></div>
+      <p class="blindinfo" id="blindInfo"></p>
+      <div class="toglist" id="campToggles"></div>
+    </div>
+
+    <div class="homeactions">
+      <button class="btn b-gold big" id="primaryBtn">Deal me in</button>
+      <button class="btn b-violet" id="collectionBtn">Collection</button>
+    </div>
   </section>
 
   <!-- COLLECTION -->
   <section id="collection" class="screen" hidden>
-    <div class="screenhead"><button class="iconbtn" data-back>Back</button><h2 class="title">Card styles</h2></div>
-    <div class="scroll" style="flex:1;min-height:0">
-      <div class="showcase" id="showcase"></div>
-      <div id="showName" style="text-align:center;margin-bottom:14px;display:flex;gap:8px;justify-content:center;align-items:center;flex-wrap:wrap"></div>
-      <div id="styleGrid"></div>
-      <h2 class="title" style="font-size:24px;margin:6px 0 10px">Tables</h2>
-      <div id="themeGrid"></div>
+    <div class="colbox panel">
+      <div class="colhead">
+        <button class="arrow" id="colPrev" aria-label="Previous page">&lt;</button>
+        <div class="coltitle"><b id="colTitle">Booster packs</b><span id="colDots"></span></div>
+        <button class="arrow" id="colNext" aria-label="Next page">&gt;</button>
+      </div>
+      <div class="colpage" id="colPage"></div>
+      <div class="colcaption" id="colCaption"></div>
+      <button class="btn b-gold" id="colBack">Back</button>
     </div>
   </section>
 
   <!-- GAME -->
   <section id="game" class="screen" hidden>
     <div class="topbar">
-      <span class="chip lvlchip"></span>
-      <span class="chip num" id="blinds">10/20</span>
-      <span class="chip" id="accChip" hidden></span>
-      <span id="handNo" hidden></span>
+      <span id="handNo" hidden></span><span id="blinds" hidden></span>
       <span class="grow"></span>
-      <button class="iconbtn packbtn" hidden></button>
       <button class="iconbtn" id="cheatBtn" aria-label="Cheat sheets">?</button>
-      <button class="iconbtn" id="menuBtn">Menu</button>
+      <button class="iconbtn" id="menuBtn">Options</button>
     </div>
     <div id="bossbar" class="panel" hidden></div>
     <div id="opps"></div>
@@ -81,13 +66,13 @@
       <div id="status" aria-live="polite"></div>
     </div>
     <div id="hero">
-      <div class="betchip" id="heroBet" hidden></div>
+      <div class="herobet"><span class="betchip" id="heroBet" hidden></span></div>
       <div id="heroCards"><div class="slot"></div><div class="slot"></div></div>
-      <div class="dbtn" id="heroD" hidden>D</div>
-      <div class="eqbadge" id="heroEq" hidden></div>
       <div class="heroinfo">
+        <span class="chip dchip" id="heroD" hidden>D</span>
         <span class="chip">You <span id="heroChips" data-v="1000">$1000</span></span>
         <span class="chip" id="heroLabel" hidden></span>
+        <span class="chip eqchip" id="heroEq" hidden></span>
       </div>
     </div>
     <div id="hud" class="panel" hidden></div>
@@ -107,7 +92,7 @@
 <div id="scrim" hidden></div>
 <div id="sheet" class="sheet" hidden>
   <div class="grab"></div>
-  <div class="sheethead"><h2 id="sheetTitle">Hand review</h2><button class="btn b-grey closebtn" id="sheetClose">Close</button></div>
+  <div class="sheethead"><h2 id="sheetTitle">Cheat sheets</h2><button class="btn b-grey closebtn" id="sheetClose">Close</button></div>
   <div class="sheetBody" id="sheetBody"></div>
 </div>
 <div id="modal" class="panel" hidden></div>

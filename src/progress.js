@@ -63,8 +63,8 @@ async function afterHand(info){
     if(G.streak>=2) bon.push([`${G.streak} win streak`,'×',+(1+.25*(G.streak-1)).toFixed(2)]);
     if(p.charm>0){bon.push(['Lucky charm','×',2]);p.charm--;}
     if(info.won>=G.bb*25) bon.push(['Big pot','×',1.5]);
-    const score=await scoreBurst(info.won,bon);
-    xp+=Math.round(score/6);p.totalScore=(p.totalScore||0)+score;
+    const score=await scoreModal(info.won,bon,info.cat==null?'Everyone folded':handTitle(info.score),info.cat==null?'':handDetail(info.score));
+    xp+=Math.min(150,Math.round(score/40));p.totalScore=(p.totalScore||0)+score;
   }else if(info.nearMiss){
     popAt($('#heroCards'),info.nearMiss,'var(--violet)');xp+=20;
   }
@@ -89,19 +89,11 @@ async function afterHand(info){
 }
 function gainXP(xp){
   const p=P();p.xp+=xp;
-  const anchor=$('#game').hidden?null:$('.lvlchip');
-  if(anchor) popAt(anchor,`+${xp} XP`,'var(--teal)');
   while(p.xp>=xpNeed(p.level)){p.xp-=xpNeed(p.level);p.level++;p.packs++;
-    setTimeout(()=>{sfx.unlock();flashSwirl('win',2200,3);if(!$('#game').hidden) banner(`Level ${p.level}`,[['Booster pack earned','var(--violet)']],'var(--teal)',innerHeight*.4,1300).catch(()=>{});else toast(`Level ${p.level}! Booster pack earned`);},400);}
+    toast(`Level ${p.level}: booster pack earned`);}
   renderLevelChips();
 }
-function packDropFx(n){
-  const b=$('#game').hidden?null:$('#game .packbtn');
-  sfx.unlock();
-  if(b){b.hidden=false;const c=center($('#board'));const t=document.createElement('div');t.className='packfly';t.textContent='Pack!';fx.appendChild(t);
-    const d=center(b);t.animate([{transform:`translate(${c.x-32}px,${c.y-44}px) scale(.3) rotate(-20deg)`},{transform:`translate(${c.x-32}px,${c.y-80}px) scale(1.3) rotate(6deg)`,offset:.35},{transform:`translate(${d.x-32}px,${d.y-44}px) scale(.35) rotate(0)`}],{duration:1100,easing:'cubic-bezier(.3,1.2,.4,1)'}).onfinish=()=>{t.remove();burst(d.x,d.y,20,['#9a6cf0','#fff','#f8b229']);};}
-  toast(n>1?`${n} booster packs found!`:'Booster pack found!');
-}
+function packDropFx(n){sfx.unlock();toast(n>1?`${n} booster packs earned. Open them in Collection`:'Booster pack earned. Open it in Collection');}
 
 /* ---------- chips × mult score burst (Balatro-style) ---------- */
 function scoreBurst(chips,bon){
@@ -170,7 +162,7 @@ function openPack(){
       else if(item.kind==='charm'){R.appendChild(tokenEl('star','#f8b229',110));R.firstChild.classList.add('spin');}
       else R.innerHTML=`<div class="xpbig num">+${item.amt}</div>`;
       const use=$('#pkUse');if(use) use.onclick=()=>{if(item.kind==='style') applyCardStyle(item.id);else{p.theme=item.id;persist();if(G&&!G.dead&&!G.boss) baseSwirl(item.id);}use.textContent='Done';sfx.btn();};
-      $('#pkNext').onclick=()=>{sfx.btn();if(p.packs) openPack();else{closeModal();if(!$('#home').hidden) renderHome();}};
+      $('#pkNext').onclick=()=>{sfx.btn();if(p.packs) openPack();else closeModal();if(!$('#collection').hidden) renderCollection();};
     },650);
   };
 }
@@ -198,3 +190,37 @@ function renderThemes(){
 }
 
 addEventListener('unhandledrejection',e=>{if(e.reason==='abort') e.preventDefault();});
+
+/* ---------- chips × mult as a clear modal ---------- */
+function scoreModal(chips,bon,title,sub){
+  return new Promise(res=>{
+    const g=G;const M=document.createElement('div');M.id='scoreModal';
+    M.innerHTML=`<div class="panel scorecard"><div class="sc-title">${title}</div>${sub?`<div class="sc-hand">${sub}</div>`:''}
+      <div class="sc-lines"></div>
+      <div class="sc-eq"><span class="sc-box c">${chips.toLocaleString('en-US')}</span><span>×</span><span class="sc-box m" id="scM">1</span></div>
+      <div class="sc-total"></div><div class="sc-tap">Tap to continue</div></div>`;
+    document.body.appendChild(M);
+    const L=M.querySelector('.sc-lines'),mEl=M.querySelector('#scM'),tot=M.querySelector('.sc-total');
+    let mult=1,i=0,done=false,score=0,timer=null;
+    const finish=()=>{if(done) return;done=true;clearTimeout(timer);M.remove();res(score);};
+    M.onclick=()=>{if(i>bon.length) finish();};
+    const step=S().fast?220:340;
+    const next=()=>{
+      if(g.dead){finish();return;}
+      if(i<bon.length){
+        const [name,op,v]=bon[i++];mult=op==='+'?mult+v:mult*v;mult=Math.round(mult*100)/100;
+        L.insertAdjacentHTML('beforeend',`<div class="sc-line"><span>${name}</span><b class="${op==='×'?'x':''}">${op}${v} mult</b></div>`);
+        mEl.textContent=mult;mEl.classList.remove('bump');void mEl.offsetWidth;mEl.classList.add('bump');tone(300+i*90,.08,'square',.05);
+        timer=setTimeout(next,step);
+      }else{
+        i++;score=Math.round(chips*mult);
+        const t0=performance.now(),dur=450;
+        const tick=now=>{const k=Math.min(1,(now-t0)/dur);tot.textContent='+'+Math.round(score*(1-Math.pow(1-k,3))).toLocaleString('en-US')+' pts';if(k<1) requestAnimationFrame(tick);};
+        requestAnimationFrame(tick);
+        if(mult>=6){sfx.bigwin();flashSwirl('win',2400,4);const c=center(tot);burst(c.x,c.y,50,['#ef4f45','#f8b229','#fff','#1d9bf0'],1.2);}else sfx.win();
+        timer=setTimeout(finish,S().fast?1300:1900);
+      }
+    };
+    timer=setTimeout(next,250);
+  });
+}
