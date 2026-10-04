@@ -55,7 +55,7 @@ PIXNUM = ("@font-face{font-family:'PixNum';src:url(data:font/ttf;base64," + base
 css = PIXNUM + (SRC / "styles.css").read_text() + "\n#home{overflow-y:auto}\n" + (SRC / "cards.css").read_text()
 
 import base64 as _b64
-RABBIT = "data:image/png;base64," + _b64.b64encode((ROOT / "assets" / "rabbit.png").read_bytes()).decode()
+RABBIT = "data:image/png;base64," + _b64.b64encode((ROOT / "assets" / "rabbit_px.png").read_bytes()).decode()
 body = body.replace("RABBIT_SRC", RABBIT)
 page = f"<title>Dead Rabbit</title>\n{fonts}\n<style>\n{css}\n</style>\n{body}\n<script>\n{js}\n</script>\n"
 (DIST / "artifact.html").write_text(page)

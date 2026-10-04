@@ -661,3 +661,4 @@ body{font-size:17px}
 .disc{width:min(17vw,64px);height:min(17vw,64px);border-radius:50%;display:grid;place-items:center;font-size:28px;color:#fff;
   background:radial-gradient(circle,#17131f 0 16%,var(--dc) 17% 60%,color-mix(in srgb,var(--dc) 50%,#000) 61%);box-shadow:0 0 0 3px rgba(255,255,255,.6),0 4px 0 rgba(0,0,0,.4)}
 .citem.eq .disc{animation:holo 4s linear infinite}
+.logo .rabbit{width:clamp(80px,24vw,110px);image-rendering:pixelated;image-rendering:crisp-edges}
