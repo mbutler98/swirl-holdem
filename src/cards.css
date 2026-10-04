@@ -186,3 +186,10 @@
 .card.sm[data-cs="spell"] .mg-art,.card.xs[data-cs="spell"] .mg-art{height:auto;flex:1}
 .card[data-cs="spell"] .back{background:radial-gradient(ellipse 30% 38% at 50% 50%,#2a5bd7 0 30%,#c43a2b 32% 46%,#f2d230 48% 55%,transparent 57%),radial-gradient(ellipse at 50% 50%,#6b4a2b,#3a2414 75%)}
 .card[data-cs="spell"] .back::after{display:none}
+
+/* ===== flat flip: squash, swap faces at the midpoint, stretch back. No 3D, so every browser draws it the same ===== */
+.card .inner,.card.up .inner{transform:none;transition:none}
+.card .back{transform:none}
+.card.up:not(.noflip) .inner{animation:flip2d .34s ease-in-out}
+@keyframes flip2d{0%{transform:scaleX(1)}50%{transform:scaleX(0)}100%{transform:scaleX(1)}}
+.face .rk2{transform:none}

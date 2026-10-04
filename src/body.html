@@ -51,6 +51,7 @@
   <!-- GAME -->
   <section id="game" class="screen" hidden>
     <div class="topbar">
+      <div class="flag" id="flag" aria-hidden="true"><b></b></div>
       <span id="handNo" hidden></span><span id="blinds" hidden></span>
       <span class="grow"></span>
       <button class="iconbtn" id="cheatBtn" aria-label="Cheat sheets">?</button>
@@ -61,7 +62,7 @@
     <div id="center">
       <div class="potrow">
         <div id="deck" aria-hidden="true"></div>
-        <div id="pot"><span class="lbl">Pot</span><span id="potNum" data-v="0">$0</span></div>
+        <div id="pot"><i class="chipico"></i><span class="lbl">Pot</span><span id="potNum" data-v="0">$0</span></div>
       </div>
       <div id="board"></div>
       <div id="status" aria-live="polite"></div>
@@ -71,6 +72,7 @@
       <div id="heroCards"><div class="slot"></div><div class="slot"></div></div>
       <div class="heroinfo">
         <span class="chip dchip" id="heroD" hidden>D</span>
+        <span class="chip blindchip" id="heroBlind" hidden></span>
         <span class="chip">You <span id="heroChips" data-v="1000">$1000</span></span>
         <span class="chip" id="heroLabel" hidden></span>
       </div>
@@ -97,3 +99,4 @@
   <div class="sheetBody" id="sheetBody"></div>
 </div>
 <div id="modal" class="panel" hidden></div>
+<img id="rabbitSrc" src="RABBIT_SRC" alt="" hidden><img id="chipSrc" src="CHIP_SRC" alt="" hidden>

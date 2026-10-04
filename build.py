@@ -6,7 +6,7 @@ from PIL import Image, ImageDraw
 ROOT = pathlib.Path(__file__).parent
 SRC, DIST = ROOT / "src", ROOT / "dist"
 DIST.mkdir(exist_ok=True)
-VERSION = "4.0.0"
+VERSION = "5.0.0"
 
 js = "\n".join((SRC / f).read_text() for f in ("core.js", "game.js", "progress.js")) + "\nrenderHome();\n"
 body = (SRC / "body.html").read_text()
@@ -56,7 +56,8 @@ css = PIXNUM + (SRC / "styles.css").read_text() + "\n#home{overflow-y:auto}\n" +
 
 import base64 as _b64
 RABBIT = "data:image/png;base64," + _b64.b64encode((ROOT / "assets" / "rabbit_px.png").read_bytes()).decode()
-body = body.replace("RABBIT_SRC", RABBIT)
+CHIP = "data:image/png;base64," + _b64.b64encode((ROOT / "assets" / "chip.png").read_bytes()).decode()
+body = body.replace("RABBIT_SRC", RABBIT).replace("CHIP_SRC", CHIP)
 page = f"<title>Dead Rabbit</title>\n{fonts}\n<style>\n{css}\n</style>\n{body}\n<script>\n{js}\n</script>\n"
 (DIST / "artifact.html").write_text(page)
 
@@ -70,9 +71,9 @@ head = f"""<!doctype html>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Dead Rabbit">
 <meta name="theme-color" content="#17131f">
-<link rel="apple-touch-icon" href="icon-180.png">
-<link rel="icon" href="favicon.png">
-<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" sizes="180x180" href="icon-180-v5.png">
+<link rel="icon" type="image/png" href="favicon-v5.png">
+<link rel="manifest" href="manifest.webmanifest?v=5">
 <title>Dead Rabbit</title>
 {fonts}
 <style>
@@ -93,13 +94,13 @@ head = f"""<!doctype html>
 manifest = {
     "name": "Dead Rabbit", "short_name": "Dead Rabbit", "start_url": "./", "scope": "./",
     "display": "standalone", "orientation": "portrait", "background_color": "#17131f", "theme_color": "#17131f",
-    "icons": [{"src": "icon-192.png", "sizes": "192x192", "type": "image/png"},
-              {"src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable"}]
+    "icons": [{"src": "icon-192-v5.png", "sizes": "192x192", "type": "image/png"},
+              {"src": "icon-512-v5.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable"}]
 }
 (DIST / "manifest.webmanifest").write_text(json.dumps(manifest, indent=2))
 
 sw = f"""const CACHE='dead-rabbit-{VERSION}';
-const CORE=['./','index.html','manifest.webmanifest','icon-180.png','icon-192.png','icon-512.png','favicon.png','dirty-rat.mp3'];
+const CORE=['./','index.html','manifest.webmanifest','icon-180-v5.png','icon-192-v5.png','icon-512-v5.png','favicon-v5.png','dirty-rat.mp3'];
 self.addEventListener('install',e=>{{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(CORE)).then(()=>self.skipWaiting()));}});
 self.addEventListener('activate',e=>{{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()));}});
 self.addEventListener('fetch',e=>{{
@@ -117,6 +118,7 @@ self.addEventListener('fetch',e=>{{
 
 # ---- icons + music come from assets/ (supplied artwork and soundtrack) ----
 import shutil
-for f in ("icon-180.png", "icon-192.png", "icon-512.png", "favicon.png", "dirty-rat.mp3"):
-    shutil.copy(ROOT / "assets" / f, DIST / f)
+for f in ("icon-180.png", "icon-192.png", "icon-512.png", "favicon.png"):
+    shutil.copy(ROOT / "assets" / f, DIST / f.replace(".png", "-v5.png"))
+shutil.copy(ROOT / "assets" / "dirty-rat.mp3", DIST / "dirty-rat.mp3")
 print("built", {p.name: p.stat().st_size for p in DIST.iterdir()})

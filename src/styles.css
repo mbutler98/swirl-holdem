@@ -662,3 +662,19 @@ body{font-size:17px}
   background:radial-gradient(circle,#17131f 0 16%,var(--dc) 17% 60%,color-mix(in srgb,var(--dc) 50%,#000) 61%);box-shadow:0 0 0 3px rgba(255,255,255,.6),0 4px 0 rgba(0,0,0,.4)}
 .citem.eq .disc{animation:holo 4s linear infinite}
 .logo .rabbit{width:clamp(80px,24vw,110px);image-rendering:pixelated;image-rendering:crisp-edges}
+
+/* ===== rabbit flag, blinds, rabbit chips ===== */
+.flag{position:relative;height:34px;width:84px;display:flex;align-items:center;padding-left:6px}
+.flag b{position:absolute;left:2px;top:2px;bottom:0;width:3px;background:#f5f0e6;border-radius:2px;box-shadow:0 2px 0 rgba(0,0,0,.4)}
+.flag b::before{content:"";position:absolute;top:-3px;left:-2px;width:7px;height:7px;border-radius:50%;background:var(--gold)}
+.flag i{display:block;width:7px;height:35px;background:var(--rab) calc(var(--i) * -7px) 0/70px 35px no-repeat;image-rendering:pixelated;
+  transform-origin:left center;animation:flagwave 1.4s ease-in-out infinite;animation-delay:calc(var(--i) * -.12s);margin-top:-4px}
+@keyframes flagwave{0%,100%{transform:translateY(-2px) skewY(-4deg)}50%{transform:translateY(2px) skewY(4deg)}}
+.blind{font-size:11px;font-weight:700;border-radius:5px;padding:0 4px;background:#e2a020;color:var(--ink)}
+.blind:empty{display:none}
+.heroinfo .blindchip{background:#e2a020!important;border-color:#f5c45a!important;color:var(--ink);font-weight:700}
+.chipfly{width:20px;height:20px;border-radius:0;background:var(--chip) center/contain no-repeat;box-shadow:none;image-rendering:pixelated}
+.chipico{display:inline-block;width:20px;height:20px;vertical-align:-4px;margin-right:6px;background:var(--chip) center/contain no-repeat;image-rendering:pixelated;animation:chipspin 3s linear infinite}
+@keyframes chipspin{0%,100%{transform:scaleX(1)}50%{transform:scaleX(.15)}}
+.scorecard::before{content:"";display:block;width:72px;height:72px;margin:-6px auto 0;background:var(--chip) center/contain no-repeat;image-rendering:pixelated;animation:chipspin 1.6s linear infinite}
+@media (prefers-reduced-motion: reduce){.flag i,.chipico,.scorecard::before{animation:none}}

@@ -384,7 +384,7 @@ function setFace(el,c){
 }
 function bobify(el){el.classList.add('bob');el.style.setProperty('--bd',rnd(2.4,3.4).toFixed(2)+'s');el.style.setProperty('--bdl',(-rnd(0,3)).toFixed(2)+'s');
   el.style.setProperty('--r0',rnd(-2.2,-.4).toFixed(2)+'deg');el.style.setProperty('--r1',rnd(.4,2.2).toFixed(2)+'deg');}
-function staticCard(c,cls='xs',cs){return makeCard(c,cls+' up',cs);}
+function staticCard(c,cls='xs',cs){return makeCard(c,cls+' up noflip',cs);}
 function applyCardStyle(id){S().cardStyle=id;persist();$$('.card').forEach(el=>{if(!el.dataset.fixed) el.dataset.cs=id;});}
 function attachTilt(container){
   const mv=e=>{const c=e.target.closest('.card');if(!c) return;const r=c.getBoundingClientRect();
@@ -433,7 +433,7 @@ function bubbleAt(el,text,boss=false,ms=2600){
 }
 function banner(big,subs=[],color='var(--gold)',y=null,hold=1500){
   const b=document.createElement('div');b.className='banner';b.style.setProperty('--bc',color);
-  b.style.top=(y??center($('#board')).y)+'px';
+  b.style.top=(y??center($('#board')).y)+'px';hold*=(typeof pace==='function'?pace():1);
   b.innerHTML=`<div class="big">${big}</div>`+(subs.length?`<div class="sub">${subs.map(s=>`<span style="background:${s[1]}">${s[0]}</span>`).join('')}</div>`:'');
   fx.appendChild(b);
   const g=(typeof G!=='undefined')?G:null;

@@ -248,7 +248,8 @@ function explain(d){
    GAME STATE + ENGINE
    ===================================================================== */
 let G=null;
-const sleep=ms=>{const g=G;return new Promise((res,rej)=>setTimeout(()=>(g&&g.dead)?rej('abort'):res(),ms*(g&&S().fast?.55:1)));};
+function pace(){return (S().fast?.55:1)*(G&&!G.dead&&G.human&&G.human.folded&&!G.human.out?.4:1);}
+const sleep=ms=>{const g=G;return new Promise((res,rej)=>setTimeout(()=>(g&&g.dead)?rej('abort'):res(),ms*pace()));};
 const potTotal=()=>G.players.reduce((a,p)=>a+p.total,0);
 const inHand=()=>G.players.filter(p=>!p.out&&!p.folded);
 const canActList=()=>G.players.filter(p=>!p.out&&!p.folded&&!p.allIn);
@@ -268,12 +269,12 @@ function flyCard(fromEl,slot,cardEl){
     const sx=a.left+a.width/2-(b.left+b.width/2),sy=a.top+a.height/2-(b.top+b.height/2),sc=a.width/b.width;
     const anim=f.animate([{transform:`translate(${b.left+sx}px,${b.top+sy}px) scale(${sc}) rotate(-25deg)`},
       {transform:`translate(${b.left}px,${b.top}px) scale(1.12) rotate(6deg)`,offset:.8},{transform:`translate(${b.left}px,${b.top}px) scale(1) rotate(0deg)`}],
-      {duration:S().fast?240:380,easing:'cubic-bezier(.2,.8,.3,1)'});
+      {duration:380*pace(),easing:'cubic-bezier(.2,.8,.3,1)'});
     sfx.deal();anim.onfinish=()=>{f.remove();cardEl.classList.remove('ghost');g.dead?rej('abort'):res();};
   });
 }
 function flyChips(fromEl,toEl,n=5){
-  const a=center(fromEl),b=center(toEl);const dur=S().fast?280:460;
+  const a=center(fromEl),b=center(toEl);const dur=460*pace();
   for(let i=0;i<n;i++){
     const c=document.createElement('div');c.className='chipfly';fx.appendChild(c);const jx=rnd(-10,10),jy=rnd(-8,8);
     const an=c.animate([{transform:`translate(${a.x-7+jx}px,${a.y-7+jy}px) scale(.6)`},{transform:`translate(${(a.x+b.x)/2-7}px,${Math.min(a.y,b.y)-50}px) scale(1.15)`,offset:.5},{transform:`translate(${b.x-7}px,${b.y-7}px) scale(.7)`}],
@@ -349,10 +350,10 @@ async function playHand(){
   if(G.ante) live.forEach(p=>{const a=Math.min(G.ante,p.chips);p.chips-=a;p.total+=a;if(p.chips===0)p.allIn=true;});
   let sbI,bbI;
   if(live.length===2){sbI=G.dealer;bbI=nextIdx(G.dealer);}else{sbI=nextIdx(G.dealer);bbI=nextIdx(sbI);}
-  postBlind(ps[sbI],G.sb);postBlind(ps[bbI],G.bb);
+  G.sbI=sbI;G.bbI=bbI;postBlind(ps[sbI],G.sb);postBlind(ps[bbI],G.bb);
   G.currentBet=Math.max(ps[sbI].bet,ps[bbI].bet,G.bb);G.minRaise=G.bb;
-  renderSeats();tweenNum($('#potNum'),potTotal()-ps.reduce((a,p)=>a+p.bet,0));
-  setStatus('Shuffle up and deal');
+  renderSeats();
+  setStatus(`${ps[G.dealer].human?'You have':ps[G.dealer].name+' has'} the button`);
 
   for(let round=0;round<2;round++){
     let i=G.dealer;
@@ -618,8 +619,8 @@ function buildTable(){
   const O=$('#opps');O.innerHTML='';
   G.players.filter(p=>!p.human).forEach(p=>{
     const st=STYLES[p.style];const el=document.createElement('div');el.className='seat';el.dataset.id=p.id;
-    el.innerHTML=`<div class="seat-box"><div class="seat-top">${p.boss||G.players.length>3?'':`<div class="ava" style="--a:${p.color}">${p.name[0]}</div>`}<div class="who"><div class="nm">${p.name}</div><div class="st" style="color:${p.boss?'#ff7a70':st.color}">${p.boss?'Boss':st.label}</div></div><div class="mini"><div class="slot"></div><div class="slot"></div></div></div>
-      <div class="seat-bot"><span class="ck" data-v="${p.chips}">${money(p.chips)}</span><span class="dbtn" hidden>D</span><span class="betchip" hidden></span><span class="eqbadge" hidden></span><span class="thinking" hidden>…</span></div></div>`;
+    el.innerHTML=`<div class="seat-box"><div class="seat-top">${p.boss||G.players.length>3?'':`<div class="ava" style="--a:${p.color}">${p.name[0]}</div>`}<div class="who"><div class="nm">${p.name}</div><div class="st" style="color:${p.boss?'#ff7a70':G.cfg.mode==='quick'?'var(--muted)':st.color}">${p.boss?'Boss':G.cfg.mode==='quick'?'???':st.label}</div></div><div class="mini"><div class="slot"></div><div class="slot"></div></div></div>
+      <div class="seat-bot"><span class="ck" data-v="${p.chips}">${money(p.chips)}</span><span class="dbtn" hidden>D</span><span class="blind" hidden></span><span class="betchip" hidden></span><span class="eqbadge" hidden></span><span class="thinking" hidden>…</span></div></div>`;
     if(p.boss) el.querySelector('.seat-top').prepend(tokenEl(p.boss.icon,p.boss.color,28));
     el.querySelector('.seat-box').style.setProperty('--sc',p.color);
     O.appendChild(el);
@@ -660,7 +661,7 @@ function seatSlot(p,i){return p.human?$('#heroCards').children[i]:seatEl(p).quer
 function resetTableVisuals(){
   $$('#board .slot, #heroCards .slot, .mini .slot').forEach(s=>s.innerHTML='');
   $$('.eqbadge').forEach(b=>b.hidden=true);
-  $('#heroLabel').hidden=true;$('#hud').hidden=true;$('#raiseTray').hidden=true;
+  $('#heroLabel').hidden=true;$('#hud').hidden=true;$('#coach').hidden=true;$('#raiseTray').hidden=true;
   $('#potNum').dataset.v=0;$('#potNum').textContent='$0';$('#hero').classList.remove('folded','turn');
 }
 function renderSeats(){
@@ -668,12 +669,14 @@ function renderSeats(){
     if(p.human){
       const hc=$('#heroChips');if(+hc.dataset.v!==p.chips) tweenNum(hc,p.chips);
       const hb=$('#heroBet');hb.hidden=!p.bet;hb.textContent=money(p.bet);
-      $('#heroD').hidden=G.players.indexOf(p)!==G.dealer;$('#hero').classList.toggle('folded',p.folded);continue;
+      $('#heroD').hidden=G.players.indexOf(p)!==G.dealer;$('#hero').classList.toggle('folded',p.folded);
+      const hb2=$('#heroBlind');const bl=blindOf(p);hb2.hidden=!bl;hb2.textContent=bl;continue;
     }
     const el=seatEl(p);if(!el) continue;
     const ck=el.querySelector('.ck');if(p.out) ck.textContent='Busted';else if(+ck.dataset.v!==p.chips) tweenNum(ck,p.chips);
     const b=el.querySelector('.betchip');b.hidden=!p.bet;b.textContent=money(p.bet);
     el.querySelector('.dbtn').hidden=G.players.indexOf(p)!==G.dealer;
+    const bl=blindOf(p),be=el.querySelector('.blind');be.hidden=!bl;be.textContent=bl;
     el.classList.toggle('folded',p.folded&&!p.out);el.classList.toggle('out',p.out);
   }
   const pn=$('#potNum');if(+pn.dataset.v!==potTotal()) tweenNum(pn,potTotal());
@@ -848,6 +851,7 @@ function openMenu(){
 function leaveTable(){
   const camp=G&&G.cfg.mode==='campaign';
   if(G){G.dead=true;if(G.pending) try{G.pending.reject('abort');}catch(e){}}
+  $('#coach').hidden=true;$('#hud').hidden=true;
   closeModal();closeSheet();$$('#fx .banner,#fx .actpop,#fx .flycard,#fx .chipfly,#fx .bubble,#bossIntro,#scoreModal').forEach(e=>e.remove());
   renderHome(camp?'camp':'quick');
 }
@@ -865,7 +869,8 @@ function checkAchievements(){
 function endMatch(won){
   const cfg=G.cfg;const acc=G.accN?(G.accSum/G.accN).toFixed(1):'–';
   if(won){sfx.bigwin();flashSwirl('win',5000,6);burst(innerWidth/2,innerHeight/2,120);shake(2);}else{sfx.lose();flashSwirl('lose',4000,2);}
-  const sum=`<div class="statgrid"><div>Hands<b>${G.handNo}</b></div><div>Accuracy<b style="color:${G.accN?accColor(G.accSum/G.accN):'var(--text)'}">${acc}</b></div></div>`;
+  const who=cfg.mode==='quick'?`<p style="text-align:center">Who was who: ${G.players.filter(p=>!p.human).map(p=>`${p.name} <b style="color:${STYLES[p.style].color}">${STYLES[p.style].label}</b>`).join(', ')}</p>`:'';
+  const sum=who+`<div class="statgrid"><div>Hands<b>${G.handNo}</b></div><div>Accuracy<b style="color:${G.accN?accColor(G.accSum/G.accN):'var(--text)'}">${acc}</b></div></div>`;
   if(cfg.mode==='campaign'){
     if(won){
       const id=`${cfg.a}-${cfg.s}`;if(!SAVE.campaign.beaten.includes(id)) SAVE.campaign.beaten.push(id);persist();
@@ -1094,6 +1099,8 @@ $('#colBack').onclick=()=>{sfx.btn();closeCollection();};
 $('#menuBtn').onclick=()=>{audio();sfx.btn();openMenu();};
 $('#cheatBtn').onclick=()=>{audio();sfx.btn();openCheats();};
 document.addEventListener('pointerdown',()=>audio(),{once:true});
+(function art(){const r=document.documentElement.style;r.setProperty('--rab',`url(${$('#rabbitSrc').src})`);r.setProperty('--chip',`url(${$('#chipSrc').src})`);
+  const F=$('#flag');for(let i=0;i<10;i++){const s=document.createElement('i');s.style.setProperty('--i',i);F.appendChild(s);}})();
 if('serviceWorker' in navigator&&location.protocol==='https:'&&!/claude\.ai|claudeusercontent/.test(location.hostname)){
   navigator.serviceWorker.register('sw.js').catch(()=>{});
 }
@@ -1165,3 +1172,5 @@ const TRACKS=[
 ];
 function trackSeg(){return `<div class="seg n3 trackseg">${TRACKS.map(t=>`<button data-t="${t.id}" aria-pressed="${S().track===t.id}">${t.name}</button>`).join('')}</div>`;}
 function wireTrackSeg(root){root.querySelectorAll('.trackseg button').forEach(b=>b.onclick=()=>{sfx.btn();Music.setTrack(b.dataset.t);root.querySelectorAll('.trackseg button').forEach(x=>x.setAttribute('aria-pressed',x.dataset.t===S().track));});}
+
+function blindOf(p){if(!G||G.sbI==null) return '';const i=G.players.indexOf(p);return i===G.bbI?'BB':i===G.sbI?'SB':'';}
