@@ -198,6 +198,7 @@ const sfx={
   sparkle(){[1318,1568,2093,1760,2349,2637].forEach((f,i)=>tone(f,.09,'triangle',.045,i*.07));},
   boss(){[110,104,98,92].forEach((f,i)=>tone(f,.3,'sawtooth',.07,i*.18));tone(55,1.2,'square',.05,.1);}
 };
+const SONGS={dirty:'dirty-rat.mp3',lucky:'lucky-tooth.mp3',stack:'stack-the-deck.mp3',misdeal:'misdeal.mp3'};
 const mtof=m=>440*Math.pow(2,(m-69)/12);
 const Music={
   on:false,theme:'menu',timer:null,next:0,step:0,mel:null,bar:0,
@@ -209,9 +210,11 @@ const Music={
   el:null,
   start(){if(!AC||this.on||S().track==='off') return;this.on=true;
     MUS.gain.cancelScheduledValues(AC.currentTime);
-    if(S().track==='dirty'){
-      if(!this.el){this.el=new Audio('dirty-rat.mp3');this.el.loop=true;this.el.preload='auto';this.el.setAttribute('playsinline','');
+    const file=SONGS[S().track];
+    if(file){
+      if(!this.el){this.el=new Audio();this.el.loop=true;this.el.preload='auto';this.el.setAttribute('playsinline','');
         try{AC.createMediaElementSource(this.el).connect(MUS);}catch(e){}}
+      if(!this.el.src.endsWith(file)) this.el.src=file;
       MUS.gain.setTargetAtTime(.5,AC.currentTime,.4);this.el.play().catch(()=>{this.on=false;});return;}
     this.next=AC.currentTime+.08;this.step=0;this.bar=0;this.mel=null;
     MUS.gain.setTargetAtTime(.55,AC.currentTime,.6);
@@ -237,7 +240,7 @@ const Music={
     }
   }
 };
-document.addEventListener('visibilitychange',()=>{if(!AC) return;if(document.hidden){AC.suspend();if(Music.el) Music.el.pause();}else{AC.resume();if(Music.on&&Music.el&&S().track==='dirty') Music.el.play().catch(()=>{});}});
+document.addEventListener('visibilitychange',()=>{if(!AC) return;if(document.hidden){AC.suspend();if(Music.el) Music.el.pause();}else{AC.resume();if(Music.on&&Music.el&&SONGS[S().track]) Music.el.play().catch(()=>{});}});
 
 /* =====================================================================
    BACKGROUND SWIRL (WebGL)

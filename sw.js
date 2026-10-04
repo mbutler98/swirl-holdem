@@ -1,5 +1,5 @@
-const CACHE='dead-rabbit-5.0.0';
-const CORE=['./','index.html','manifest.webmanifest','icon-180-v5.png','icon-192-v5.png','icon-512-v5.png','favicon-v5.png','dirty-rat.mp3'];
+const CACHE='dead-rabbit-6.0.0';
+const CORE=['./','index.html','manifest.webmanifest','icon-180-v5.png','icon-192-v5.png','icon-512-v5.png','favicon-v5.png'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(CORE)).then(()=>self.skipWaiting()));});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()));});
 self.addEventListener('fetch',e=>{
@@ -7,7 +7,7 @@ self.addEventListener('fetch',e=>{
   const url=new URL(req.url);
   if(url.origin===location.origin){
     // network first for the page so updates arrive, cache fallback for offline
-    e.respondWith(fetch(req).then(r=>{const cp=r.clone();caches.open(CACHE).then(c=>c.put(req,cp));return r;}).catch(()=>caches.match(req).then(r=>r||caches.match('index.html'))));
+    e.respondWith(fetch(req).then(r=>{if(r.status===200){const cp=r.clone();caches.open(CACHE).then(c=>c.put(req,cp)).catch(()=>{});}return r;}).catch(()=>caches.match(req).then(r=>r||caches.match('index.html'))));
   } else if(/fonts\.(googleapis|gstatic)\.com/.test(url.hostname)){
     e.respondWith(caches.match(req).then(r=>r||fetch(req).then(res=>{const cp=res.clone();caches.open(CACHE).then(c=>c.put(req,cp));return res;})));
   }

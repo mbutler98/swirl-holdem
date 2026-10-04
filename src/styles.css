@@ -678,3 +678,26 @@ body{font-size:17px}
 @keyframes chipspin{0%,100%{transform:scaleX(1)}50%{transform:scaleX(.15)}}
 .scorecard::before{content:"";display:block;width:72px;height:72px;margin:-6px auto 0;background:var(--chip) center/contain no-repeat;image-rendering:pixelated;animation:chipspin 1.6s linear infinite}
 @media (prefers-reduced-motion: reduce){.flag i,.chipico,.scorecard::before{animation:none}}
+
+/* ===== v6 ===== */
+.flag{padding-left:0;width:76px}
+.flag i{animation:flagwave 3.2s ease-in-out infinite;transform-origin:left center}
+@keyframes flagwave{0%,100%{transform:translateY(-1.5px) skewY(-3deg)}50%{transform:translateY(1.5px) skewY(3deg)}}
+@media (prefers-reduced-motion: reduce){.flag i{animation:flagwave 5s ease-in-out infinite}}
+#heroBet{display:inline-flex;align-items:center;gap:2px;padding:1px 10px 1px 4px;font-size:13px}
+#heroBet .chipico{width:18px;height:18px;margin-right:4px;vertical-align:0}
+.herobet{height:26px}
+/* coin slider */
+#raiseRange{-webkit-appearance:none;appearance:none;height:36px;background:transparent;--pct:0%}
+#raiseRange::-webkit-slider-runnable-track{height:12px;border-radius:6px;border:2px solid #0b0d12;
+  background:linear-gradient(90deg,#c82828 0,#e8483c var(--pct),#1d2430 var(--pct))}
+#raiseRange::-moz-range-track{height:12px;border-radius:6px;border:2px solid #0b0d12;background:#1d2430}
+#raiseRange::-moz-range-progress{height:12px;border-radius:6px;background:#c82828}
+#raiseRange::-webkit-slider-thumb{-webkit-appearance:none;width:36px;height:36px;margin-top:-14px;border:0;background:var(--chip) center/contain no-repeat;image-rendering:pixelated;filter:drop-shadow(0 3px 0 rgba(0,0,0,.45))}
+#raiseRange::-moz-range-thumb{width:36px;height:36px;border:0;background:var(--chip) center/contain no-repeat;image-rendering:pixelated}
+.rvcoin{width:46px;height:46px;flex:none;background:var(--chip) center/contain no-repeat;image-rendering:pixelated;animation:chipspin 2.4s linear infinite;align-self:center}
+/* badges stay inside the button so nothing scrolls sideways */
+.badge{top:-9px;right:6px}
+#home{overflow-x:hidden}
+.trackseg{grid-template-columns:repeat(3,1fr)}
+.trackseg button{font-size:13px}

@@ -586,13 +586,14 @@ function openRaise(p,minTo,maxTo,done){
   const tray=$('#raiseTray'),range=$('#raiseRange'),go=$('#raiseGo');const pot=potTotal(),toCall=G.currentBet-p.bet;
   range.min=minTo;range.max=maxTo;range.step=Math.max(1,Math.min(G.sb,(maxTo-minTo)||1));range.value=minTo;
   const label=()=>{const v=+range.value;go.textContent=v>=maxTo?`All in ${money(maxTo)}`:`${G.currentBet===0?'Bet':'Raise to'} ${money(v)}`;};
-  const set=v=>{range.value=clamp(Math.round(v),minTo,maxTo);label();sfx.tick();};
+  const fill=()=>{const v=+range.value;range.style.setProperty('--pct',(maxTo>minTo?(v-minTo)/(maxTo-minTo)*100:100)+'%');};
+  const set=v=>{range.value=clamp(Math.round(v),minTo,maxTo);label();fill();sfx.tick();};
   const P=$('#presets');P.innerHTML='';const potTo=f=>G.currentBet+f*(pot+toCall);
   [['Min',minTo],['½ pot',potTo(.5)],['Pot',potTo(1)],['All in',maxTo]].forEach(([n,v])=>{const b=document.createElement('button');b.textContent=n;b.onclick=()=>set(v);P.appendChild(b);});
-  range.oninput=()=>{label();sfx.tick();};
+  range.oninput=()=>{label();fill();sfx.tick();};
   $('#raiseCancel').onclick=()=>{tray.hidden=true;sfx.btn();};
   go.onclick=()=>{audio();sfx.btn();done({a:'raise',to:+range.value});};
-  label();tray.hidden=false;
+  label();fill();tray.hidden=false;
 }
 function waitNext(){
   return new Promise((resolve,reject)=>{
@@ -668,7 +669,7 @@ function renderSeats(){
   for(const p of G.players){
     if(p.human){
       const hc=$('#heroChips');if(+hc.dataset.v!==p.chips) tweenNum(hc,p.chips);
-      const hb=$('#heroBet');hb.hidden=!p.bet;hb.textContent=money(p.bet);
+      const hb=$('#heroBet');hb.hidden=!p.bet;hb.innerHTML=`<i class="chipico"></i>So far in for ${money(p.bet)}`;
       $('#heroD').hidden=G.players.indexOf(p)!==G.dealer;$('#hero').classList.toggle('folded',p.folded);
       const hb2=$('#heroBlind');const bl=blindOf(p);hb2.hidden=!bl;hb2.textContent=bl;continue;
     }
@@ -748,7 +749,7 @@ function openReview(){
       <div class="sub">Win <b>${pct(d.eqA)}</b> · ${d.toCall?`need <b>${pct(d.req)}</b>`:'free'}${good?'':` · <span class="bst">Best: ${shortBest(d.best)}${d.loss>=1?` (+${money(d.loss)})`:''}</span>`}</div></div>`;}).join('')+
     (R.mine.length>shown.length?`<div class="note" style="text-align:center">+${R.mine.length-shown.length} earlier decision${R.mine.length-shown.length>1?'s':''} counted in your accuracy</div>`:'');
   openModal(`<div class="rv"><div class="rv-top"><div><div class="bigacc" style="color:${accColor(acc)}">${acc.toFixed(1)}</div><div class="k">Accuracy</div></div>
-    <div><div class="net" style="color:${R.net>0?'var(--gold)':R.net<0?'var(--red)':'var(--text)'}">${smoney(R.net)}</div><div class="k" style="text-align:right">This hand</div></div></div>
+    <div class="rvcoin"></div><div><div class="net" style="color:${R.net>0?'var(--gold)':R.net<0?'var(--red)':'var(--text)'}">${smoney(R.net)}</div><div class="k" style="text-align:right">This hand</div></div></div>
     ${G.foldResult?`<div class="rv-fold" style="--cc:${G.foldResult.won?'var(--red)':'var(--green)'}">${G.foldResult.text}</div>`:''}
     <div class="rv-list">${rows}</div>
     <div class="btnrow"><button class="btn b-grey" id="rvClose">Close</button><button class="btn b-gold" id="rvNext">Next hand</button></div></div>`);
@@ -1100,7 +1101,7 @@ $('#menuBtn').onclick=()=>{audio();sfx.btn();openMenu();};
 $('#cheatBtn').onclick=()=>{audio();sfx.btn();openCheats();};
 document.addEventListener('pointerdown',()=>audio(),{once:true});
 (function art(){const r=document.documentElement.style;r.setProperty('--rab',`url(${$('#rabbitSrc').src})`);r.setProperty('--chip',`url(${$('#chipSrc').src})`);
-  const F=$('#flag');for(let i=0;i<10;i++){const s=document.createElement('i');s.style.setProperty('--i',i);F.appendChild(s);}})();
+  const F=$('#flag');for(let i=0;i<10;i++){const s=document.createElement('i');s.style.backgroundPosition=(-7*i)+'px 0';s.style.animationDelay=(-i*.32)+'s';F.appendChild(s);}})();
 if('serviceWorker' in navigator&&location.protocol==='https:'&&!/claude\.ai|claudeusercontent/.test(location.hostname)){
   navigator.serviceWorker.register('sw.js').catch(()=>{});
 }
@@ -1167,6 +1168,9 @@ function renderCoach(d){
 /* ---------- music tracks ---------- */
 const TRACKS=[
   {id:'dirty',name:'Dirty Rat',sub:'The Dead Rabbit theme',color:'#9a6cf0'},
+  {id:'lucky',name:'Lucky Tooth',sub:'Dead Rabbit soundtrack',color:'#f8b229'},
+  {id:'stack',name:'Stack the Deck',sub:'Dead Rabbit soundtrack',color:'#ef4f45'},
+  {id:'misdeal',name:'Misdeal',sub:'Dead Rabbit soundtrack',color:'#1d9bf0'},
   {id:'chip',name:'Chiptune',sub:'Generated 8-bit lounge, with a boss remix',color:'#26c6b5'},
   {id:'off',name:'No music',sub:'Sound effects only',color:'#5c6a80'}
 ];
