@@ -210,7 +210,7 @@ const Music={
   start(){if(!AC||this.on||S().track==='off') return;this.on=true;
     MUS.gain.cancelScheduledValues(AC.currentTime);
     if(S().track==='dirty'){
-      if(!this.el){this.el=new Audio('dirty-rat.m4a');this.el.loop=true;this.el.preload='auto';this.el.setAttribute('playsinline','');
+      if(!this.el){this.el=new Audio('dirty-rat.mp3');this.el.loop=true;this.el.preload='auto';this.el.setAttribute('playsinline','');
         try{AC.createMediaElementSource(this.el).connect(MUS);}catch(e){}}
       MUS.gain.setTargetAtTime(.5,AC.currentTime,.4);this.el.play().catch(()=>{this.on=false;});return;}
     this.next=AC.currentTime+.08;this.step=0;this.bar=0;this.mel=null;

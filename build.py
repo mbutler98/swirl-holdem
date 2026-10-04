@@ -99,7 +99,7 @@ manifest = {
 (DIST / "manifest.webmanifest").write_text(json.dumps(manifest, indent=2))
 
 sw = f"""const CACHE='dead-rabbit-{VERSION}';
-const CORE=['./','index.html','manifest.webmanifest','icon-180.png','icon-192.png','icon-512.png','favicon.png','dirty-rat.m4a'];
+const CORE=['./','index.html','manifest.webmanifest','icon-180.png','icon-192.png','icon-512.png','favicon.png','dirty-rat.mp3'];
 self.addEventListener('install',e=>{{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(CORE)).then(()=>self.skipWaiting()));}});
 self.addEventListener('activate',e=>{{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()));}});
 self.addEventListener('fetch',e=>{{
@@ -117,6 +117,6 @@ self.addEventListener('fetch',e=>{{
 
 # ---- icons + music come from assets/ (supplied artwork and soundtrack) ----
 import shutil
-for f in ("icon-180.png", "icon-192.png", "icon-512.png", "favicon.png", "dirty-rat.m4a"):
+for f in ("icon-180.png", "icon-192.png", "icon-512.png", "favicon.png", "dirty-rat.mp3"):
     shutil.copy(ROOT / "assets" / f, DIST / f)
 print("built", {p.name: p.stat().st_size for p in DIST.iterdir()})
