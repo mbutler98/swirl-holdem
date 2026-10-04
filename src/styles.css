@@ -649,3 +649,15 @@ body{font-size:17px}
 .rv-row .bst{color:var(--gold)}
 .rv-top{padding:8px 12px}
 .rv-top .bigacc{font-size:38px}
+
+/* ================= DEAD RABBIT ================= */
+.logo{display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:nowrap}
+.logo .l1{font-size:clamp(30px,9.6vw,46px);color:#f5f0e6;-webkit-text-stroke:0;letter-spacing:.04em;text-shadow:0 4px 0 rgba(0,0,0,.45);white-space:nowrap}
+.logo .l1 span{animation-duration:3.2s}
+.logo .rabbit{width:clamp(64px,19vw,96px);height:auto;filter:drop-shadow(0 3px 0 rgba(0,0,0,.45));animation:rabbit 3.4s ease-in-out infinite}
+@keyframes rabbit{50%{transform:translateY(-3px) rotate(-3deg)}}
+.seg.n3{grid-template-columns:repeat(3,1fr)}
+.trackseg button{font-size:14px;padding:9px 4px}
+.disc{width:min(17vw,64px);height:min(17vw,64px);border-radius:50%;display:grid;place-items:center;font-size:28px;color:#fff;
+  background:radial-gradient(circle,#17131f 0 16%,var(--dc) 17% 60%,color-mix(in srgb,var(--dc) 50%,#000) 61%);box-shadow:0 0 0 3px rgba(255,255,255,.6),0 4px 0 rgba(0,0,0,.4)}
+.citem.eq .disc{animation:holo 4s linear infinite}

@@ -6,7 +6,7 @@ from PIL import Image, ImageDraw
 ROOT = pathlib.Path(__file__).parent
 SRC, DIST = ROOT / "src", ROOT / "dist"
 DIST.mkdir(exist_ok=True)
-VERSION = "3.0.0"
+VERSION = "4.0.0"
 
 js = "\n".join((SRC / f).read_text() for f in ("core.js", "game.js", "progress.js")) + "\nrenderHome();\n"
 body = (SRC / "body.html").read_text()
@@ -54,7 +54,10 @@ PIXNUM = ("@font-face{font-family:'PixNum';src:url(data:font/ttf;base64," + base
           ") format('truetype');unicode-range:U+0030-0039;font-display:block}\n")
 css = PIXNUM + (SRC / "styles.css").read_text() + "\n#home{overflow-y:auto}\n" + (SRC / "cards.css").read_text()
 
-page = f"<title>Swirl Hold'em</title>\n{fonts}\n<style>\n{css}\n</style>\n{body}\n<script>\n{js}\n</script>\n"
+import base64 as _b64
+RABBIT = "data:image/png;base64," + _b64.b64encode((ROOT / "assets" / "rabbit.png").read_bytes()).decode()
+body = body.replace("RABBIT_SRC", RABBIT)
+page = f"<title>Dead Rabbit</title>\n{fonts}\n<style>\n{css}\n</style>\n{body}\n<script>\n{js}\n</script>\n"
 (DIST / "artifact.html").write_text(page)
 
 head = f"""<!doctype html>
@@ -65,12 +68,12 @@ head = f"""<!doctype html>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Hold'em">
+<meta name="apple-mobile-web-app-title" content="Dead Rabbit">
 <meta name="theme-color" content="#17131f">
 <link rel="apple-touch-icon" href="icon-180.png">
-<link rel="icon" href="icon-192.png">
+<link rel="icon" href="favicon.png">
 <link rel="manifest" href="manifest.webmanifest">
-<title>Swirl Hold'em</title>
+<title>Dead Rabbit</title>
 {fonts}
 <style>
 :root{{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}}
@@ -88,15 +91,15 @@ head = f"""<!doctype html>
 (DIST / "index.html").write_text(head)
 
 manifest = {
-    "name": "Swirl Hold'em", "short_name": "Hold'em", "start_url": "./", "scope": "./",
+    "name": "Dead Rabbit", "short_name": "Dead Rabbit", "start_url": "./", "scope": "./",
     "display": "standalone", "orientation": "portrait", "background_color": "#17131f", "theme_color": "#17131f",
     "icons": [{"src": "icon-192.png", "sizes": "192x192", "type": "image/png"},
               {"src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable"}]
 }
 (DIST / "manifest.webmanifest").write_text(json.dumps(manifest, indent=2))
 
-sw = f"""const CACHE='swirl-holdem-{VERSION}';
-const CORE=['./','index.html','manifest.webmanifest','icon-180.png','icon-192.png','icon-512.png'];
+sw = f"""const CACHE='dead-rabbit-{VERSION}';
+const CORE=['./','index.html','manifest.webmanifest','icon-180.png','icon-192.png','icon-512.png','favicon.png','dirty-rat.m4a'];
 self.addEventListener('install',e=>{{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(CORE)).then(()=>self.skipWaiting()));}});
 self.addEventListener('activate',e=>{{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()));}});
 self.addEventListener('fetch',e=>{{
@@ -112,30 +115,8 @@ self.addEventListener('fetch',e=>{{
 """
 (DIST / "sw.js").write_text(sw)
 
-# ---- pixel icon: red swirl-back card with a cream spade on deep purple ----
-SPADE = ["...X...", "..XXX..", ".XXXXX.", "XXXXXXX", "XXXXXXX", "XX.X.XX", "..XXX.."]
-def icon(size):
-    s = 32  # draw on a 32px grid, scale up crisp
-    im = Image.new("RGB", (s, s), "#2a1840")
-    d = ImageDraw.Draw(im)
-    for y in range(s):  # banded swirl-ish background
-        for x in range(s):
-            if ((x * 3 + y * 5) // 7 + (x * y) // 40) % 4 == 0:
-                im.putpixel((x, y), (60, 34, 92))
-    d.rectangle([7, 3, 25, 28], fill="#17131f")          # shadow/outline
-    d.rectangle([8, 3, 24, 26], fill="#f5f0e6")          # card face
-    d.rectangle([8, 3, 24, 3], fill="#17131f")
-    for y, row in enumerate(SPADE):
-        for x, ch in enumerate(row):
-            if ch == "X":
-                d.rectangle([9 + x * 2, 9 + y * 2, 10 + x * 2, 10 + y * 2], fill="#2d2f45")
-    # gold A in the corner
-    A = [".X.", "X.X", "XXX", "X.X"]
-    for y, row in enumerate(A):
-        for x, ch in enumerate(row):
-            if ch == "X":
-                im.putpixel((10 + x, 5 + y - 1), (226, 54, 74))
-    return im.resize((size, size), Image.NEAREST)
-for n in (180, 192, 512):
-    icon(n).save(DIST / f"icon-{n}.png")
+# ---- icons + music come from assets/ (supplied artwork and soundtrack) ----
+import shutil
+for f in ("icon-180.png", "icon-192.png", "icon-512.png", "favicon.png", "dirty-rat.m4a"):
+    shutil.copy(ROOT / "assets" / f, DIST / f)
 print("built", {p.name: p.stat().st_size for p in DIST.iterdir()})

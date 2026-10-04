@@ -37,7 +37,10 @@
 .card.cardpop{animation:cardpop .45s cubic-bezier(.3,1.8,.5,1)}
 @keyframes cardpop{0%{scale:1.25}100%{scale:1}}
 /* duelist parts hidden by default */
-.face .dl{display:none}
+.face .dl,.face .tc,.face .mg{display:none}
+/* iOS Safari ignores backface-visibility on positioned children, so hide the unseen side outright, swapping mid-flip */
+.card .face{transition:visibility 0s linear .17s}.card:not(.up) .face{visibility:hidden}
+.card .back{transition:visibility 0s linear .17s}.card.up .back{visibility:hidden}
 
 /* ================= STYLES ================= */
 /* steel */
@@ -139,3 +142,47 @@
 .card.sm[data-cs="duelist"] .dl-attr,.card.xs[data-cs="duelist"] .dl-attr{display:none}
 .card[data-cs="duelist"] .back{background:radial-gradient(ellipse 34% 42% at 50% 50%,#120a06 0 60%,#5a3a20 62% 66%,transparent 68%),repeating-conic-gradient(from 0deg at 50% 50%,#3a2414 0 10deg,#4a2e19 10deg 20deg)}
 .card[data-cs="duelist"] .back::after{background:#c99a5b;inset:36% 30%}
+
+/* trainer: pocket-monster style frame */
+.card[data-cs="trainer"]{--face-bg:#f2d230;--face-edge:#7a6510;--back-a:#2a5bd7;--back-b:#1f4ab8;--back-frame:#f2d230;--back-line:#c43a2b}
+.card[data-cs="trainer"] .rk,.card[data-cs="trainer"] .pip,.card[data-cs="trainer"] .big{display:none}
+.card[data-cs="trainer"] .face .tc{display:flex;flex-direction:column;position:absolute;inset:5%;gap:2.5%;border-radius:4%;padding:4%;
+  background:linear-gradient(170deg,color-mix(in srgb,currentColor 25%,#fff),color-mix(in srgb,currentColor 55%,#fff))}
+.tc-top{display:flex;align-items:center;gap:4%;height:13%;flex:none}
+.tc-top .g{height:85%;display:flex;color:#1d1d1d}.tc-top .g svg{height:100%;width:auto}
+.tc-top .hp{margin-left:auto;font-size:calc(var(--w)*.085);font-weight:700;color:#c43a2b}
+.tc .en{height:100%;aspect-ratio:1;border-radius:50%;background:currentColor;display:grid;place-items:center;box-shadow:inset 0 0 0 1px rgba(0,0,0,.35)}
+.tc .en svg{width:62%;filter:brightness(0) invert(1)}
+.tc-art{flex:1;min-height:0;border:2px solid #b9b9b9;background:radial-gradient(circle at 50% 60%,#fff,color-mix(in srgb,currentColor 30%,#fff));display:grid;place-items:center;box-shadow:inset 0 0 0 1px #6d6d6d}
+.tc-art svg{width:52%}
+.tc-move{display:flex;align-items:center;gap:4%;height:12%;flex:none;font-size:calc(var(--w)*.08);font-weight:700;color:#1d1d1d}
+.tc-move .mv{flex:1;white-space:nowrap;overflow:hidden}
+.tc-foot{height:7%;flex:none;font-size:calc(var(--w)*.058);color:#333;border-top:1px solid rgba(0,0,0,.25);white-space:nowrap;overflow:hidden}
+.card.sm[data-cs="trainer"] .tc-move,.card.sm[data-cs="trainer"] .tc-foot,.card.sm[data-cs="trainer"] .hp,.card.sm[data-cs="trainer"] .tc-top .en,
+.card.xs[data-cs="trainer"] .tc-move,.card.xs[data-cs="trainer"] .tc-foot,.card.xs[data-cs="trainer"] .hp,.card.xs[data-cs="trainer"] .tc-top .en{display:none}
+.card.sm[data-cs="trainer"] .tc-top,.card.xs[data-cs="trainer"] .tc-top{height:32%}
+.card[data-cs="trainer"] .back{background:radial-gradient(circle at 50% 50%,#fff 0 9%,#1d1d1d 10% 14%,transparent 15%),linear-gradient(#c43a2b 0 48%,#1d1d1d 48% 52%,#f4f4f4 52%)}
+.card[data-cs="trainer"] .back::after{display:none}
+/* spellcaster: arcane trading-card frame, suit picks the frame colour */
+.card[data-cs="spell"]{--face-bg:#121212;--face-edge:#000;--back-a:#5a3a22;--back-b:#4a2f1b;--back-frame:#c9a36b;--back-line:#2a1a0e}
+.card[data-cs="spell"] .rk,.card[data-cs="spell"] .pip,.card[data-cs="spell"] .big{display:none}
+.mg{--fr:#3a3a3a}
+.mg.s0{--fr:#3b3b44}.mg.s1{--fr:#b8402f}.mg.s2{--fr:#d8c48e}.mg.s3{--fr:#2f6fb8}
+.card[data-cs="spell"] .face .mg{display:flex;flex-direction:column;position:absolute;inset:4.5%;gap:2%;padding:4%;border-radius:4%;
+  background:linear-gradient(160deg,color-mix(in srgb,var(--fr) 70%,#fff),var(--fr) 60%,color-mix(in srgb,var(--fr) 70%,#000))}
+.mg-title,.mg-type{background:linear-gradient(#efe6d2,#cdbf9e);border:1px solid #2a2418;border-radius:3px/40%;display:flex;align-items:center;padding:0 5%;flex:none}
+.mg-title{height:13%;justify-content:space-between}
+.mg-title .g{height:72%;display:flex;color:#1b1b1b}.mg-title .g svg{height:100%;width:auto}
+.mana{display:flex;gap:6%;height:58%;justify-content:flex-end;flex:1}
+.mana i{height:100%;aspect-ratio:1;border-radius:50%;background:color-mix(in srgb,var(--fr) 80%,#fff);box-shadow:0 0 0 1px #1b1b1b}
+.mg-art{height:40%;flex:none;border:1px solid #1b1b1b;background:radial-gradient(circle at 50% 45%,color-mix(in srgb,currentColor 30%,#fff),color-mix(in srgb,currentColor 70%,#000));display:grid;place-items:center}
+.mg-art svg{width:42%;color:#fff;filter:drop-shadow(0 2px 0 rgba(0,0,0,.4))}
+.mg-type{height:9%;font-size:calc(var(--w)*.07);font-weight:700;color:#1b1b1b;white-space:nowrap;overflow:hidden}
+.mg-text{flex:1;min-height:0;background:#efe6d2;border:1px solid #2a2418;font-size:calc(var(--w)*.062);line-height:1.15;color:#1b1b1b;padding:3% 5%;overflow:hidden}
+.mg-pt{position:absolute;right:4%;bottom:2%;background:linear-gradient(#efe6d2,#cdbf9e);border:1px solid #1b1b1b;border-radius:3px;font-size:calc(var(--w)*.08);font-weight:700;color:#1b1b1b;padding:1% 5%}
+.card.sm[data-cs="spell"] .mg-type,.card.sm[data-cs="spell"] .mg-text,.card.sm[data-cs="spell"] .mg-pt,.card.sm[data-cs="spell"] .mana,
+.card.xs[data-cs="spell"] .mg-type,.card.xs[data-cs="spell"] .mg-text,.card.xs[data-cs="spell"] .mg-pt,.card.xs[data-cs="spell"] .mana{display:none}
+.card.sm[data-cs="spell"] .mg-title,.card.xs[data-cs="spell"] .mg-title{height:34%}
+.card.sm[data-cs="spell"] .mg-art,.card.xs[data-cs="spell"] .mg-art{height:auto;flex:1}
+.card[data-cs="spell"] .back{background:radial-gradient(ellipse 30% 38% at 50% 50%,#2a5bd7 0 30%,#c43a2b 32% 46%,#f2d230 48% 55%,transparent 57%),radial-gradient(ellipse at 50% 50%,#6b4a2b,#3a2414 75%)}
+.card[data-cs="spell"] .back::after{display:none}

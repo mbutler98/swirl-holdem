@@ -1,4 +1,4 @@
-# Swirl Hold'em
+# Dead Rabbit
 
 A pixel-arcade Texas Hold'em trainer: campaign with boss fights, card styles, booster packs, and a chess-style accuracy review of every decision.
 
@@ -7,4 +7,4 @@ A pixel-arcade Texas Hold'em trainer: campaign with boss fights, card styles, bo
 **Add to iPhone:** open the link in Safari → Share → Add to Home Screen. It launches full screen and works offline after the first visit.
 
 ## Develop
-Source lives in `src/`. Run `python3 build.py` (needs Pillow) to bundle it; then copy `dist/index.html`, `sw.js`, `manifest.webmanifest` and the icons to the repo root.
+Source lives in `src/`, artwork and the Dirty Rat soundtrack in `assets/`. Run `python3 build.py` (needs Pillow) to bundle it; then copy everything in `dist/` except `artifact.html` to the repo root.

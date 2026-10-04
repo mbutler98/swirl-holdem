@@ -137,11 +137,11 @@ function freq(x){
    ===================================================================== */
 const STORE_KEY='swirlholdem_v2';
 const DEFAULTS={
-  settings:{opp:3,diff:'mixed',coach:true,hud:false,handName:true,thoughts:false,music:true,sound:true,fast:false,autoNext:true,jcoach:true,reveal:true,cardStyle:'classic'},
-  prog:{xp:0,level:1,theme:'felt',themes:['felt'],charm:0,pity:0,quests:[],packs:0,totalScore:0},
+  settings:{opp:3,diff:'mixed',coach:true,hud:false,handName:true,thoughts:false,music:true,track:'dirty',sound:true,fast:false,autoNext:true,jcoach:true,reveal:true,cardStyle:'classic'},
+  prog:{xp:0,level:1,theme:'rabbit',themes:['felt','rabbit'],charm:0,pity:0,quests:[],packs:0,totalScore:0},
   stats:{hands:0,won:0,net:0,vpip:0,accSum:0,accN:0,cls:{master:0,best:0,excellent:0,good:0,inacc:0,mistake:0,blunder:0},bigHands:0,allinWins:0,streak:0,bestStreak:0},
   campaign:{beaten:[]},
-  unlocked:['classic','steel','neon','retro']
+  unlocked:['classic','steel','neon','retro','duelist','trainer','spell']
 };
 function load(){
   try{const s=JSON.parse(localStorage.getItem(STORE_KEY)||'null');
@@ -149,7 +149,8 @@ function load(){
       campaign:{...DEFAULTS.campaign,...s.campaign},prog:{...DEFAULTS.prog,...s.prog},unlocked:[...new Set([...DEFAULTS.unlocked,...(s.unlocked||[])])]};}catch(e){}
   return JSON.parse(JSON.stringify(DEFAULTS));
 }
-let SAVE=load();
+function migrate(sv){if(!sv.prog.themes.includes('rabbit')) sv.prog.themes.push('rabbit');if(sv.settings.music===false&&!sv._m){sv.settings.track='off';}sv._m=1;return sv;}
+let SAVE=migrate(load());
 function persist(){try{localStorage.setItem(STORE_KEY,JSON.stringify(SAVE));}catch(e){}}
 const S=()=>SAVE.settings;
 
@@ -163,7 +164,7 @@ function audio(){
     NOISE=AC.createBuffer(1,AC.sampleRate*.25,AC.sampleRate);const d=NOISE.getChannelData(0);for(let i=0;i<d.length;i++) d[i]=Math.random()*2-1;
   }catch(e){AC=null;}}
   if(AC&&AC.state==='suspended') AC.resume();
-  if(AC&&S().music) Music.start();
+  if(AC&&S().track!=='off') Music.start();
   return AC;
 }
 function tone(freq,dur,type='square',vol=.06,when=0,slide=0,dest){
@@ -205,10 +206,18 @@ const Music={
     table:{bpm:94,prog:[[57,60,64,67],[50,53,57,60],[55,59,62,65],[48,52,55,59]],scale:[0,3,5,7,10],root:57,bass:'triangle',kick:false,swing:.16},
     boss:{bpm:128,prog:[[52,55,59],[48,52,55],[50,54,57],[47,51,54,57]],scale:[0,2,3,7,8],root:52,bass:'sawtooth',kick:true,swing:0}
   },
-  start(){if(!AC||this.on) return;this.on=true;this.next=AC.currentTime+.08;this.step=0;this.bar=0;this.mel=null;
-    MUS.gain.cancelScheduledValues(AC.currentTime);MUS.gain.setTargetAtTime(.55,AC.currentTime,.6);
+  el:null,
+  start(){if(!AC||this.on||S().track==='off') return;this.on=true;
+    MUS.gain.cancelScheduledValues(AC.currentTime);
+    if(S().track==='dirty'){
+      if(!this.el){this.el=new Audio('dirty-rat.m4a');this.el.loop=true;this.el.preload='auto';this.el.setAttribute('playsinline','');
+        try{AC.createMediaElementSource(this.el).connect(MUS);}catch(e){}}
+      MUS.gain.setTargetAtTime(.5,AC.currentTime,.4);this.el.play().catch(()=>{this.on=false;});return;}
+    this.next=AC.currentTime+.08;this.step=0;this.bar=0;this.mel=null;
+    MUS.gain.setTargetAtTime(.55,AC.currentTime,.6);
     this.timer=setInterval(()=>this.tick(),30);},
-  stop(){if(!this.on) return;this.on=false;clearInterval(this.timer);if(AC) MUS.gain.setTargetAtTime(0,AC.currentTime,.2);},
+  stop(){if(!this.on) return;this.on=false;clearInterval(this.timer);this.timer=null;if(this.el) this.el.pause();if(AC) MUS.gain.setTargetAtTime(0,AC.currentTime,.2);},
+  setTrack(t){S().track=t;persist();this.stop();if(t!=='off'){audio();this.start();}},
   setTheme(name){if(this.theme===name) return;this.theme=name;this.mel=null;this.step=0;this.bar=0;if(AC&&this.on) this.next=AC.currentTime+.1;},
   makeMel(T){const m=[];let deg=2;for(let i=0;i<32;i++){if(Math.random()<(i%2?.38:.62)){deg=clamp(deg+pick([-2,-1,-1,1,1,2,0]),0,9);m.push(deg);}else m.push(null);}return m;},
   tick(){
@@ -228,14 +237,14 @@ const Music={
     }
   }
 };
-document.addEventListener('visibilitychange',()=>{if(!AC) return;if(document.hidden) AC.suspend();else AC.resume();});
+document.addEventListener('visibilitychange',()=>{if(!AC) return;if(document.hidden){AC.suspend();if(Music.el) Music.el.pause();}else{AC.resume();if(Music.on&&Music.el&&S().track==='dirty') Music.el.play().catch(()=>{});}});
 
 /* =====================================================================
    BACKGROUND SWIRL (WebGL)
    ===================================================================== */
 const SWIRL={tgt:null,cur:null,spin:1};
 const PALETTES={
-  menu:[[0.80,0.27,0.24],[0.13,0.10,0.20],[0.13,0.45,0.78]],
+  menu:[[0.42,0.20,0.78],[0.04,0.04,0.16],[0.98,0.55,0.18]],
   table:[[0.18,0.52,0.42],[0.06,0.20,0.18],[0.32,0.70,0.55]],
   boss:[[0.62,0.12,0.14],[0.08,0.03,0.05],[0.95,0.35,0.20]],
   win:[[0.85,0.60,0.15],[0.30,0.16,0.05],[1.0,0.88,0.50]],
@@ -350,9 +359,11 @@ const CARD_STYLES=[
   {id:'holo',name:'Holographic',rar:'epic',req:'Beat The Clock (Ante 5 boss)'},
   {id:'vapor',name:'Vaporwave',rar:'epic',req:'Play 50 hands'},
   {id:'negative',name:'Negative',rar:'epic',req:'Win a pot with a full house or better'},
-  {id:'duelist',name:'Duelist',rar:'legendary',req:'Beat The Fog (Ante 6 boss)'},
+  {id:'duelist',name:'Duelist',rar:'legendary',req:'Starter deck'},
+  {id:'trainer',name:'Trainer',rar:'legendary',req:'Starter deck'},
+  {id:'spell',name:'Spellcaster',rar:'legendary',req:'Starter deck'},
   {id:'gold',name:'Gilded',rar:'legendary',req:'Beat The Mirror (Ante 7 boss)'},
-  {id:'polychrome',name:'Polychrome',rar:'legendary',req:'Make 10 master moves'},
+  {id:'polychrome',name:'Polychrome',rar:'legendary',req:'Beat The Fog (Ante 6 boss) or make 10 master moves'},
   {id:'mythic',name:'Mythic',rar:'mythic',req:'Beat The House (final boss)'}
 ];
 const styleById=id=>CARD_STYLES.find(s=>s.id===id)||CARD_STYLES[0];
@@ -366,7 +377,9 @@ function setFace(el,c){
   const r=rankOf(c),s=suitOf(c),f=el.querySelector('.face');
   const stars=Math.min(12,Math.max(1,Math.ceil((r+2)/1.2)-1));
   f.innerHTML=`<span class="rk s${s}">${RANK_SVG[r]}</span><span class="pip s${s}">${SUIT_SVG[s]}</span><span class="big s${s}">${SUIT_SVG[s]}</span><span class="rk rk2 s${s}">${RANK_SVG[r]}</span>`+
-   `<span class="dl s${s}"><span class="dl-name"><span class="g">${RANK_SVG[r]}</span><span class="dl-attr">${SUIT_SVG[s]}</span></span><span class="dl-stars">${'<i></i>'.repeat(stars)}</span><span class="dl-art">${SUIT_SVG[s]}</span><span class="dl-txt">ATK/${(r+2)*200} DEF/${(15-r)*100}</span></span>`;
+   `<span class="dl s${s}"><span class="dl-name"><span class="g">${RANK_SVG[r]}</span><span class="dl-attr">${SUIT_SVG[s]}</span></span><span class="dl-stars">${'<i></i>'.repeat(stars)}</span><span class="dl-art">${SUIT_SVG[s]}</span><span class="dl-txt">ATK/${(r+2)*200} DEF/${(15-r)*100}</span></span>`+
+   `<span class="tc s${s}"><span class="tc-top"><span class="g">${RANK_SVG[r]}</span><span class="hp">HP${(r+3)*10}</span><span class="en">${SUIT_SVG[s]}</span></span><span class="tc-art">${SUIT_SVG[s]}</span><span class="tc-move"><span class="en">${SUIT_SVG[s]}</span><span class="mv">${['Bluff','Check-Raise','Slow Play','All In'][s]}</span><b>${(r+2)*10}</b></span><span class="tc-foot">weak ×2 · retreat ●</span></span>`+
+   `<span class="mg s${s}"><span class="mg-title"><span class="g">${RANK_SVG[r]}</span><span class="mana">${'<i></i>'.repeat(Math.min(4,1+Math.floor(r/4)))}</span></span><span class="mg-art">${SUIT_SVG[s]}</span><span class="mg-type">Creature · ${['Spade','Heart','Diamond','Club'][s]}</span><span class="mg-text">${['Whenever an opponent folds, draw a card.','Lifelink. Heals you for every pot won.','When this enters, add one gold.','Can block any number of bluffs.'][s]}</span><span class="mg-pt">${Math.ceil((r+2)/2)}/${Math.ceil((15-r)/2)}</span></span>`;
   el.dataset.card=c;el.setAttribute('aria-label',`${RANK_NAME[r]} of ${SUIT_WORD[s]}`);
 }
 function bobify(el){el.classList.add('bob');el.style.setProperty('--bd',rnd(2.4,3.4).toFixed(2)+'s');el.style.setProperty('--bdl',(-rnd(0,3)).toFixed(2)+'s');

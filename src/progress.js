@@ -11,10 +11,17 @@ Object.assign(PALETTES,{
   toxic:[[0.45,0.80,0.20],[0.06,0.16,0.06],[0.85,1.0,0.35]],
   royal:[[0.35,0.25,0.75],[0.08,0.05,0.20],[0.95,0.75,0.30]],
   midnight:[[0.18,0.22,0.40],[0.03,0.04,0.09],[0.55,0.65,0.95]],
-  candy:[[0.95,0.50,0.75],[0.35,0.20,0.45],[0.55,0.90,0.95]]
+  candy:[[0.95,0.50,0.75],[0.35,0.20,0.45],[0.55,0.90,0.95]],
+  rabbit:[[0.42,0.20,0.78],[0.04,0.04,0.16],[0.98,0.55,0.18]],
+  mahogany:[[0.50,0.20,0.12],[0.15,0.05,0.04],[0.88,0.58,0.32]],
+  arctic:[[0.50,0.75,0.92],[0.08,0.16,0.30],[0.95,0.98,1.0]],
+  emerald:[[0.10,0.55,0.32],[0.02,0.12,0.08],[0.70,0.95,0.60]],
+  aurora:[[0.18,0.72,0.55],[0.04,0.05,0.18],[0.70,0.40,0.98]],
+  inferno:[[0.88,0.26,0.06],[0.12,0.02,0.02],[1.0,0.82,0.22]]
 });
 const THEMES=[
-  {id:'felt',name:'Green felt',rar:'common'},{id:'ocean',name:'Deep sea',rar:'rare'},{id:'sunset',name:'Sunset strip',rar:'rare'},
+  {id:'rabbit',name:'Dead Rabbit',rar:'common'},{id:'felt',name:'Green felt',rar:'common'},{id:'mahogany',name:'Mahogany',rar:'rare'},
+  {id:'arctic',name:'Arctic',rar:'rare'},{id:'emerald',name:'Emerald',rar:'rare'},{id:'aurora',name:'Aurora',rar:'epic'},{id:'inferno',name:'Inferno',rar:'epic'},{id:'ocean',name:'Deep sea',rar:'rare'},{id:'sunset',name:'Sunset strip',rar:'rare'},
   {id:'midnight',name:'Midnight',rar:'rare'},{id:'toxic',name:'Toxic',rar:'epic'},{id:'royal',name:'Royal velvet',rar:'epic'},{id:'candy',name:'Candy floss',rar:'legendary'}
 ];
 CARD_STYLES.push({id:'candy',name:'Candy',rar:'epic',req:'Found in booster packs'},{id:'circuit',name:'Circuit',rar:'legendary',req:'Found in booster packs'});
@@ -45,7 +52,7 @@ function renderLevelChips(){
   $$('.lvlchip').forEach(el=>{el.innerHTML=`Lv ${p.level}<i><b style="width:${f}%"></b></i>`;});
   $$('.packbtn').forEach(b=>{b.hidden=!p.packs;b.textContent=`Open pack${p.packs>1?` ×${p.packs}`:''}`;});
 }
-function themePalette(){return P().theme||'felt';}
+function themePalette(){return P().theme||'rabbit';}
 
 /* ---------- after every hand ---------- */
 async function afterHand(info){
@@ -140,7 +147,7 @@ function rollPack(){
 function openPack(){
   const p=P();if(!p.packs) return;
   audio();sfx.btn();
-  openModal(`<h2>Booster pack</h2><div class="packwrap"><div class="pack" id="pack"><span class="px">Swirl</span><b class="px">PACK</b><span>Tap to open</span></div></div><p style="text-align:center;color:var(--muted)">${p.packs} pack${p.packs>1?'s':''} waiting</p>`);
+  openModal(`<h2>Booster pack</h2><div class="packwrap"><div class="pack" id="pack"><span class="px">Dead Rabbit</span><b class="px">PACK</b><span>Tap to open</span></div></div><p style="text-align:center;color:var(--muted)">${p.packs} pack${p.packs>1?'s':''} waiting</p>`);
   const pk=$('#pack');let opened=false;
   pk.onclick=()=>{
     if(opened) return;opened=true;pk.classList.add('rip');sfx.pack();

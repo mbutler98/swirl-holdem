@@ -50,7 +50,7 @@ const ANTES=[
   {name:'Riverboat',small:['reg'],big:['reg','maniac'],boss:'gambler',reward:'foil'},
   {name:'Back Alley',small:['reg','reg'],big:['reg','shark'],boss:'shroud',reward:'lava'},
   {name:'High Rollers',small:['shark'],big:['shark','maniac'],boss:'clock',reward:'holo'},
-  {name:'Penthouse',small:['shark','reg'],big:['shark','shark'],boss:'fog',reward:'duelist'},
+  {name:'Penthouse',small:['shark','reg'],big:['shark','shark'],boss:'fog',reward:'polychrome'},
   {name:'Underground',small:['shark','maniac','reg'],big:['shark','shark','rock'],boss:'mirror',reward:'gold'},
   {name:'The Vault',small:['shark','shark'],big:['shark','shark','maniac'],boss:'house',reward:'mythic'}
 ];
@@ -822,7 +822,7 @@ function statGrid(){
    <div>Master moves<b style="color:var(--c-master)">${s.cls.master}</b></div><div>Blunders<b style="color:var(--c-blunder)">${s.cls.blunder}</b></div></div>`;
 }
 const SETTINGS=[
-  ['music','Music','Chiptune soundtrack'],['sound','Sound effects','Cards, chips and wins'],
+  ['sound','Sound effects','Cards, chips and wins'],
   ['coach','Auto hand review','Shows your grades after each hand'],['handName','Show my hand\'s name','Turn off to practise reading hands'],
   ['hud','Live odds meter','Your odds and break-even on your turn'],['jcoach','Joker coach','Plain-words advice on your turn (quick play)'],
   ['reveal','Show everyone\'s cards','Reveal all hands and what you beat after each round'],['fast','Fast dealing','Shorter animations']
@@ -832,15 +832,14 @@ function settingsHtml(keys,compact,short){return SETTINGS.filter(s=>!keys||keys.
 function wireSettings(root){
   root.querySelectorAll('.tog[data-k]').forEach(b=>b.onclick=()=>{
     const k=b.dataset.k;S()[k]=!S()[k];b.setAttribute('aria-checked',S()[k]);persist();audio();sfx.btn();
-    if(k==='music'){if(S().music) Music.start();else Music.stop();}
     if(G&&!G.dead){if(k==='handName') updateHeroLabel();if(k==='hud'&&!S().hud) $('#hud').hidden=true;if(k==='jcoach'&&!S().jcoach) $('#coach').hidden=true;}
   });
 }
 function openMenu(){
-  const keys=['music','sound','coach','handName',...(G.cfg.mode==='quick'?['hud','jcoach']:[]),'reveal','fast'];
-  openModal(`<h2>Options</h2>${settingsHtml(keys,true)}<div class="btnrow"><button class="btn b-green" id="mCheat">Cheat sheets</button><button class="btn b-violet hasbadge" id="mCol">Collection${packBadge()}</button></div>
+  const keys=['sound','coach','handName',...(G.cfg.mode==='quick'?['hud','jcoach']:[]),'reveal','fast'];
+  openModal(`<h2>Options</h2><div class="field"><h3>Music</h3>${trackSeg()}</div>${settingsHtml(keys,true)}<div class="btnrow"><button class="btn b-green" id="mCheat">Cheat sheets</button><button class="btn b-violet hasbadge" id="mCol">Collection${packBadge()}</button></div>
     <div class="btnrow"><button class="btn b-red" id="mQuit">Leave table</button><button class="btn b-gold" id="mResume">Resume</button></div>`);
-  wireSettings($('#modal'));
+  wireSettings($('#modal'));wireTrackSeg($('#modal'));
   $('#mCheat').onclick=()=>{closeModal();openCheats();};
   $('#mCol').onclick=()=>{closeModal();openCollection(0,'game');};
   $('#mResume').onclick=()=>{sfx.btn();closeModal();};
@@ -904,7 +903,7 @@ function renderHome(mode){
   if(G) G.dead=true;
   if(mode) HOME.mode=mode;
   show('home');
-  $$('.logo [data-word]').forEach(w=>{if(!w.children.length) w.innerHTML=[...w.dataset.word].map((ch,i)=>`<span style="--i:${i}">${ch}</span>`).join('');});
+  $$('.logo [data-word]').forEach(w=>{if(!w.children.length) w.innerHTML=[...w.dataset.word].map((ch,i)=>`<span style="--i:${i}">${ch===' '?'&nbsp;':ch}</span>`).join('');});
   const LC=$('#logoCards');LC.innerHTML='';
   [[48,-14],[37,-6],[26,0],[15,6],[4,14]].forEach(([c,r],i)=>{const el=makeCard(c,'up');el.style.setProperty('--w','40px');bobify(el);el.style.setProperty('--r0',(r-2)+'deg');el.style.setProperty('--r1',(r+2)+'deg');el.style.marginTop=(Math.abs(i-2)*6)+'px';LC.appendChild(el);});
   $('#collectionBtn').innerHTML='Collection'+packBadge();
@@ -957,7 +956,7 @@ const COL={page:0,sel:null};
 const RAR_ORDER=['common','rare','epic','legendary','mythic'];
 function colPages(){const pages=[{k:'packs',t:'Booster packs'}];
   RAR_ORDER.forEach(r=>{if(CARD_STYLES.some(s=>s.rar===r)) pages.push({k:'cards',rar:r,t:`Cards: ${RARITY[r][0]}`});});
-  pages.push({k:'tables',t:'Tables'});return pages;}
+  pages.push({k:'tables',t:'Tables'});pages.push({k:'music',t:'Music'});return pages;}
 function packBadge(){const n=P().packs;return n?`<span class="badge">${n}</span>`:'';}
 function openCollection(page=0,from='home'){COL.from=from;show('collection');baseSwirl('shop',1);COL.page=page;COL.sel=null;renderCollection();}
 function closeCollection(){if(COL.from==='game'&&G&&!G.dead){show('game');Music.setTheme(G.boss?'boss':'table');baseSwirl(G.boss?'boss':themePalette());requestAnimationFrame(sizeCards);}else renderHome();}
@@ -968,7 +967,7 @@ function renderCollection(){
   const PG=$('#colPage');PG.className='colpage';PG.innerHTML='';const CP=$('#colCaption');CP.innerHTML='';
   if(pg.k==='packs'){
     const p=P();ensureQuests();persist();PG.classList.add('single');
-    PG.innerHTML=(p.packs?`<div class="pack" id="colPack"><span>Swirl</span><b>PACK</b><span>Tap to open</span></div><div class="packcount">${p.packs} pack${p.packs>1?'s':''} ready</div>`
+    PG.innerHTML=(p.packs?`<div class="pack" id="colPack"><span>Dead Rabbit</span><b>PACK</b><span>Tap to open</span></div><div class="packcount">${p.packs} pack${p.packs>1?'s':''} ready</div>`
       :`<p style="margin:0;font-size:18px;line-height:1.4">No packs yet.<br><span style="color:var(--muted);font-size:15px">Play some more hands to earn them.</span></p>`)+
       `<div class="qlist">${p.quests.map(q=>{const d=questDef(q.id);return `<div class="quest"><span>${d.text}</span><span>${q.prog}/${d.goal}</span><i><b style="width:${q.prog/d.goal*100}%"></b></i></div>`;}).join('')}</div>`;
     const cp=$('#colPack');if(cp) cp.onclick=openPack;
@@ -985,6 +984,13 @@ function renderCollection(){
     });
     const sel=styleById(COL.sel||S().cardStyle);const [rn,rc]=RARITY[sel.rar];const un=SAVE.unlocked.includes(sel.id);
     CP.innerHTML=`<span><b>${sel.name}</b> <span class="rar" style="--rc:${rc}">${rn}</span></span><small>${un?(S().cardStyle===sel.id?'Equipped':'Tap to equip'):sel.req}</small>`;
+  }
+  if(pg.k==='music'){
+    TRACKS.forEach(t=>{const b=document.createElement('button');b.className='citem'+(S().track===t.id?' eq sel':'');
+      b.innerHTML=`<span class="disc" style="--dc:${t.color}">${t.id==='off'?'×':'♪'}</span><span class="cn">${t.name}</span>`;
+      b.onclick=()=>{sfx.btn();Music.setTrack(t.id);renderCollection();};PG.appendChild(b);});
+    const cur=TRACKS.find(t=>t.id===S().track)||TRACKS[0];
+    CP.innerHTML=`<span><b>${cur.name}</b></span><small>${cur.sub}</small>`;
   }
   if(pg.k==='tables'){
     THEMES.slice().sort((a,b)=>RAR_ORDER.indexOf(a.rar)-RAR_ORDER.indexOf(b.rar)).forEach(t=>{
@@ -1150,3 +1156,12 @@ function renderCoach(d){
   C.hidden=false;C.innerHTML=`<div class="jk">${JOKER_SVG}</div><div class="jt">${coachText(d).map(t=>`<span>${t}</span>`).join(' ')}</div>`;
   C.classList.remove('in');void C.offsetWidth;C.classList.add('in');
 }
+
+/* ---------- music tracks ---------- */
+const TRACKS=[
+  {id:'dirty',name:'Dirty Rat',sub:'The Dead Rabbit theme',color:'#9a6cf0'},
+  {id:'chip',name:'Chiptune',sub:'Generated 8-bit lounge, with a boss remix',color:'#26c6b5'},
+  {id:'off',name:'No music',sub:'Sound effects only',color:'#5c6a80'}
+];
+function trackSeg(){return `<div class="seg n3 trackseg">${TRACKS.map(t=>`<button data-t="${t.id}" aria-pressed="${S().track===t.id}">${t.name}</button>`).join('')}</div>`;}
+function wireTrackSeg(root){root.querySelectorAll('.trackseg button').forEach(b=>b.onclick=()=>{sfx.btn();Music.setTrack(b.dataset.t);root.querySelectorAll('.trackseg button').forEach(x=>x.setAttribute('aria-pressed',x.dataset.t===S().track));});}
